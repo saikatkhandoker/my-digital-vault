@@ -45,6 +45,7 @@ export function LinkProvider({ children }: { children: ReactNode }) {
   const [links, setLinks] = useState<Link[]>([]);
   const [linkCategories, setLinkCategories] = useState<LinkCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
@@ -243,10 +244,12 @@ export function LinkProvider({ children }: { children: ReactNode }) {
       links,
       linkCategories,
       searchQuery,
+      selectedCategory,
       addLink,
       updateLink,
       deleteLink,
       setSearchQuery,
+      setSelectedCategory,
       addLinkCategory,
       updateLinkCategory,
       deleteLinkCategory,

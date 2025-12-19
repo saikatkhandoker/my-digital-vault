@@ -3,7 +3,7 @@ import { LinkCard } from './LinkCard';
 import { Link as LinkIcon } from 'lucide-react';
 
 export function LinkGrid() {
-  const { links, searchQuery } = useLinks();
+  const { links, searchQuery, selectedCategory } = useLinks();
   
   const filteredLinks = links.filter(l => {
     const query = searchQuery.toLowerCase().trim();
@@ -13,7 +13,9 @@ export function LinkGrid() {
         l.tags.some(tag => tag.toLowerCase().includes(query))
       : true;
     
-    return matchesSearch;
+    const matchesCategory = selectedCategory === null || l.categoryId === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
   });
 
   if (filteredLinks.length === 0) {
@@ -24,7 +26,7 @@ export function LinkGrid() {
         <p className="mt-1 text-sm text-muted-foreground">
           {links.length === 0 
             ? 'Add your first link using the form above'
-            : 'No links match your search'}
+            : 'No links match your search or filter'}
         </p>
       </div>
     );

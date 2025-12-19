@@ -3,6 +3,7 @@ import { LinkForm } from '@/components/links/LinkForm';
 import { LinkGrid } from '@/components/links/LinkGrid';
 import { LinkSearchBar } from '@/components/links/LinkSearchBar';
 import { LinkCategoryManager } from '@/components/links/LinkCategoryManager';
+import { LinkCategoryFilter } from '@/components/links/LinkCategoryFilter';
 import { LinkProvider } from '@/context/LinkContext';
 
 const Links = () => {
@@ -30,6 +31,9 @@ const Links = () => {
                 <h2 className="text-lg font-semibold text-foreground">Your Links</h2>
                 <p className="text-sm text-muted-foreground">Search and manage your saved links</p>
               </div>
+
+              {/* Category Filter */}
+              <LinkCategoryFilter />
 
               {/* Search Bar */}
               <LinkSearchBar />
