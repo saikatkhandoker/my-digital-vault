@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Plus, Link as LinkIcon, Loader2, Youtube, Facebook } from 'lucide-react';
+import { Plus, Link as LinkIcon, Loader2, Youtube, Facebook, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useVideos } from '@/context/VideoContext';
-import { detectPlatform, extractVideoId, isValidVideoUrl, fetchVideoMetadata, getThumbnail } from '@/lib/video-utils';
+import { detectPlatform, extractVideoId, isValidVideoUrl, fetchVideoMetadata, getThumbnail, getPlatformDisplayName } from '@/lib/video-utils';
 import { useToast } from '@/hooks/use-toast';
+
+// TikTok icon component
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+    </svg>
+  );
+}
 
 export function VideoForm() {
   const [url, setUrl] = useState('');
@@ -63,7 +72,7 @@ export function VideoForm() {
     if (!isValidVideoUrl(url)) {
       toast({ 
         title: 'Invalid video URL', 
-        description: 'Please enter a valid YouTube or Facebook video link', 
+        description: 'Please enter a valid YouTube, Facebook, Instagram, or TikTok video link', 
         variant: 'destructive' 
       });
       return;
@@ -91,10 +100,16 @@ export function VideoForm() {
   };
 
   const getPlatformIcon = () => {
-    if (platform === 'youtube') return <Youtube className="h-4 w-4 text-red-500" />;
-    if (platform === 'facebook') return <Facebook className="h-4 w-4 text-blue-500" />;
-    return <LinkIcon className="h-4 w-4 text-muted-foreground" />;
+    switch (platform) {
+      case 'youtube': return <Youtube className="h-4 w-4 text-red-500" />;
+      case 'facebook': return <Facebook className="h-4 w-4 text-blue-500" />;
+      case 'instagram': return <Instagram className="h-4 w-4 text-pink-500" />;
+      case 'tiktok': return <TikTokIcon className="h-4 w-4" />;
+      default: return <LinkIcon className="h-4 w-4 text-muted-foreground" />;
+    }
   };
+
+  const needsManualTitle = platform !== 'unknown' && platform !== 'youtube' && !title;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -103,7 +118,7 @@ export function VideoForm() {
           Video URL
           {platform !== 'unknown' && (
             <span className="ml-2 text-xs text-muted-foreground">
-              ({platform === 'youtube' ? 'YouTube' : 'Facebook'} detected)
+              ({getPlatformDisplayName(platform)} detected)
             </span>
           )}
         </label>
@@ -114,7 +129,7 @@ export function VideoForm() {
           <Input
             id="url"
             type="url"
-            placeholder="Paste YouTube or Facebook video URL..."
+            placeholder="Paste YouTube, Facebook, Instagram, or TikTok URL..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="pl-10"
@@ -161,9 +176,9 @@ export function VideoForm() {
         </div>
       </div>
 
-      {platform === 'facebook' && !title && (
+      {needsManualTitle && (
         <p className="text-sm text-amber-600">
-          Facebook video titles can't be auto-fetched. Please enter a title manually.
+          {getPlatformDisplayName(platform)} video titles can't be auto-fetched. Please enter a title manually.
         </p>
       )}
 

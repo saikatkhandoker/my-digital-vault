@@ -1,4 +1,4 @@
-export type VideoPlatform = 'youtube' | 'facebook' | 'unknown';
+export type VideoPlatform = 'youtube' | 'facebook' | 'instagram' | 'tiktok' | 'unknown';
 
 // YouTube patterns
 const youtubePatterns = [
@@ -14,12 +14,35 @@ const facebookPatterns = [
   /facebook\.com\/reel\/(\d+)/,
 ];
 
+// Instagram patterns
+const instagramPatterns = [
+  /instagram\.com\/reel\/([^/?]+)/,
+  /instagram\.com\/p\/([^/?]+)/,
+  /instagram\.com\/reels\/([^/?]+)/,
+  /instagr\.am\/reel\/([^/?]+)/,
+  /instagr\.am\/p\/([^/?]+)/,
+];
+
+// TikTok patterns
+const tiktokPatterns = [
+  /tiktok\.com\/@[^/]+\/video\/(\d+)/,
+  /tiktok\.com\/t\/([^/?]+)/,
+  /vm\.tiktok\.com\/([^/?]+)/,
+  /tiktok\.com\/v\/(\d+)/,
+];
+
 export function detectPlatform(url: string): VideoPlatform {
   for (const pattern of youtubePatterns) {
     if (pattern.test(url)) return 'youtube';
   }
   for (const pattern of facebookPatterns) {
     if (pattern.test(url)) return 'facebook';
+  }
+  for (const pattern of instagramPatterns) {
+    if (pattern.test(url)) return 'instagram';
+  }
+  for (const pattern of tiktokPatterns) {
+    if (pattern.test(url)) return 'tiktok';
   }
   return 'unknown';
 }
@@ -33,6 +56,18 @@ export function extractVideoId(url: string): string | null {
   
   // Try Facebook patterns
   for (const pattern of facebookPatterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+
+  // Try Instagram patterns
+  for (const pattern of instagramPatterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+
+  // Try TikTok patterns
+  for (const pattern of tiktokPatterns) {
     const match = url.match(pattern);
     if (match) return match[1];
   }
@@ -62,7 +97,7 @@ export function getThumbnail(url: string, platform: VideoPlatform, videoId: stri
   if (platform === 'youtube' && videoId) {
     return getYouTubeThumbnail(videoId);
   }
-  // Facebook doesn't provide easy thumbnail access, use a placeholder
+  // Other platforms don't provide easy thumbnail access, use a placeholder
   return '/placeholder.svg';
 }
 
@@ -95,9 +130,9 @@ export async function fetchVideoMetadata(url: string): Promise<{
     }
   }
   
-  if (platform === 'facebook') {
-    // Facebook oEmbed requires an access token, so we return partial data
-    // The user will need to enter the title manually
+  // Facebook, Instagram, and TikTok oEmbed require access tokens
+  // Return partial data - user will need to enter title manually
+  if (platform === 'facebook' || platform === 'instagram' || platform === 'tiktok') {
     return {
       title: '',
       channelName: '',
@@ -107,4 +142,15 @@ export async function fetchVideoMetadata(url: string): Promise<{
   }
   
   return null;
+}
+
+// Get platform display name
+export function getPlatformDisplayName(platform: VideoPlatform): string {
+  switch (platform) {
+    case 'youtube': return 'YouTube';
+    case 'facebook': return 'Facebook';
+    case 'instagram': return 'Instagram';
+    case 'tiktok': return 'TikTok';
+    default: return 'Unknown';
+  }
 }
