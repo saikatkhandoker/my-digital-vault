@@ -28,10 +28,24 @@ async function initTable(client: any) {
       title TEXT NOT NULL,
       url TEXT NOT NULL,
       thumbnail TEXT,
-      channel_title TEXT,
+      channel_name TEXT,
+      channel_url TEXT,
       category_id TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
+  `);
+
+  // Add new columns if they don't exist (for existing tables)
+  await client.queryArray(`
+    DO $$ 
+    BEGIN 
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='channel_name') THEN
+        ALTER TABLE videos ADD COLUMN channel_name TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='channel_url') THEN
+        ALTER TABLE videos ADD COLUMN channel_url TEXT;
+      END IF;
+    END $$;
   `);
   
   await client.queryArray(`
@@ -88,12 +102,12 @@ serve(async (req) => {
     }
 
     if (action === 'addVideo') {
-      const { title, url: videoUrl, thumbnail, channelTitle, categoryId } = await req.json();
+      const { title, url: videoUrl, thumbnail, channelName, channelUrl, categoryId } = await req.json();
       const result = await client.queryObject(
-        `INSERT INTO videos (title, url, thumbnail, channel_title, category_id) 
-         VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO videos (title, url, thumbnail, channel_name, channel_url, category_id) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
-        [title, videoUrl, thumbnail, channelTitle, categoryId]
+        [title, videoUrl, thumbnail, channelName, channelUrl, categoryId]
       );
       console.log('Video added:', result.rows[0]);
       return new Response(

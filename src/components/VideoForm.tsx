@@ -7,20 +7,28 @@ import { useVideos } from '@/context/VideoContext';
 import { extractVideoId, getYouTubeThumbnail, isValidYouTubeUrl } from '@/lib/youtube';
 import { useToast } from '@/hooks/use-toast';
 
+interface VideoMetadata {
+  title: string;
+  channelName: string;
+  channelUrl: string;
+}
+
 export function VideoForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [channelName, setChannelName] = useState('');
+  const [channelUrl, setChannelUrl] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [isFetchingTitle, setIsFetchingTitle] = useState(false);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const { categories, addVideo } = useVideos();
   const { toast } = useToast();
 
-  // Auto-fetch video title when URL changes
+  // Auto-fetch video metadata when URL changes
   useEffect(() => {
-    const fetchTitle = async () => {
+    const fetchMetadata = async () => {
       if (!isValidYouTubeUrl(url)) return;
       
-      setIsFetchingTitle(true);
+      setIsFetchingMetadata(true);
       try {
         const response = await fetch(
           `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
@@ -28,15 +36,17 @@ export function VideoForm() {
         if (response.ok) {
           const data = await response.json();
           setTitle(data.title || '');
+          setChannelName(data.author_name || '');
+          setChannelUrl(data.author_url || '');
         }
       } catch (error) {
-        // Silent fail - user can enter title manually
+        // Silent fail - user can enter details manually
       } finally {
-        setIsFetchingTitle(false);
+        setIsFetchingMetadata(false);
       }
     };
 
-    const timeoutId = setTimeout(fetchTitle, 500);
+    const timeoutId = setTimeout(fetchMetadata, 500);
     return () => clearTimeout(timeoutId);
   }, [url]);
 
@@ -63,11 +73,15 @@ export function VideoForm() {
       url: url.trim(),
       title: title.trim() || 'Untitled Video',
       thumbnailUrl: getYouTubeThumbnail(videoId),
+      channelName: channelName.trim() || null,
+      channelUrl: channelUrl.trim() || null,
       categoryId: categoryId || null,
     });
 
     setUrl('');
     setTitle('');
+    setChannelName('');
+    setChannelUrl('');
     setCategoryId('');
     toast({ title: 'Video added successfully!' });
   };
@@ -94,12 +108,12 @@ export function VideoForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor="title" className="text-sm font-medium text-foreground">
-            Title {isFetchingTitle && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+            Title {isFetchingMetadata && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
           </label>
           <Input
             id="title"
             type="text"
-            placeholder={isFetchingTitle ? "Fetching title..." : "Video title"}
+            placeholder={isFetchingMetadata ? "Fetching..." : "Video title"}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
@@ -129,6 +143,12 @@ export function VideoForm() {
           </Select>
         </div>
       </div>
+
+      {channelName && (
+        <p className="text-sm text-muted-foreground">
+          Channel: {channelName}
+        </p>
+      )}
 
       <Button type="submit" className="w-full">
         <Plus className="mr-2 h-4 w-4" />

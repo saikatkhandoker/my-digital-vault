@@ -30,10 +30,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         title TEXT NOT NULL,
         url TEXT NOT NULL,
         thumbnail TEXT,
-        channel_title TEXT,
+        channel_name TEXT,
+        channel_url TEXT,
         category_id TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
+    `;
+
+    // Add new columns if they don't exist (for existing tables)
+    await sql`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='channel_name') THEN
+          ALTER TABLE videos ADD COLUMN channel_name TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='channel_url') THEN
+          ALTER TABLE videos ADD COLUMN channel_url TEXT;
+        END IF;
+      END $$;
     `;
     
     await sql`
@@ -70,10 +84,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (action === 'addVideo') {
-      const { title, url, thumbnail, channelTitle, categoryId } = req.body;
+      const { title, url, thumbnail, channelName, channelUrl, categoryId } = req.body;
       const result = await sql`
-        INSERT INTO videos (title, url, thumbnail, channel_title, category_id) 
-        VALUES (${title}, ${url}, ${thumbnail}, ${channelTitle}, ${categoryId}) 
+        INSERT INTO videos (title, url, thumbnail, channel_name, channel_url, category_id) 
+        VALUES (${title}, ${url}, ${thumbnail}, ${channelName}, ${channelUrl}, ${categoryId}) 
         RETURNING *
       `;
       console.log('Video added:', result[0]);

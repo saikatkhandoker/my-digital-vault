@@ -1,5 +1,5 @@
-import { ExternalLink, Trash2 } from 'lucide-react';
-import { Video, Category } from '@/types/video';
+import { ExternalLink, Trash2, User } from 'lucide-react';
+import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
@@ -21,6 +21,19 @@ export function VideoCard({ video }: VideoCardProps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleChannelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (video.channelUrl) {
+      const link = document.createElement('a');
+      link.href = video.channelUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -59,6 +72,16 @@ export function VideoCard({ video }: VideoCardProps) {
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+
+        {video.channelName && (
+          <button
+            onClick={handleChannelClick}
+            className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <User className="h-3.5 w-3.5" />
+            <span className="hover:underline">{video.channelName}</span>
+          </button>
+        )}
         
         {category && (
           <Badge 

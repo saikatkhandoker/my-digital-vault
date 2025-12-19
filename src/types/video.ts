@@ -9,6 +9,8 @@ export interface Video {
   url: string;
   title: string;
   thumbnailUrl: string;
+  channelName: string | null;
+  channelUrl: string | null;
   categoryId: string | null;
   createdAt: string;
 }
