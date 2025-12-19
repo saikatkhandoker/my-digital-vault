@@ -4,7 +4,7 @@ import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
-import { detectPlatform } from '@/lib/video-utils';
+import { detectPlatform, getPlatformPlaceholder } from '@/lib/video-utils';
 import { VideoEditDialog } from './VideoEditDialog';
 import {
   AlertDialog,
@@ -93,7 +93,7 @@ export function VideoCard({ video }: VideoCardProps) {
       >
         <div className="relative aspect-video overflow-hidden bg-muted">
           <img
-            src={video.thumbnailUrl || '/placeholder.svg'}
+            src={video.thumbnailUrl || getPlatformPlaceholder(platform)}
             alt={video.title}
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
           />
