@@ -46,7 +46,12 @@ export function LinkGrid() {
         l.tags.some(tag => tag.toLowerCase().includes(query))
       : true;
     
-    const matchesCategory = selectedCategory === null || l.categoryId === selectedCategory;
+    let matchesCategory = true;
+    if (selectedCategory === 'uncategorized') {
+      matchesCategory = !l.categoryId;
+    } else if (selectedCategory) {
+      matchesCategory = l.categoryId === selectedCategory;
+    }
     
     return matchesSearch && matchesCategory;
   });

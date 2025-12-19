@@ -144,7 +144,7 @@ export function VideoCard({ video }: VideoCardProps) {
             </button>
           )}
           
-          {category && (
+          {category ? (
             <Badge 
               variant="secondary" 
               className="mt-2"
@@ -154,6 +154,10 @@ export function VideoCard({ video }: VideoCardProps) {
               }}
             >
               {category.name}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="mt-2 bg-muted-foreground/10 text-muted-foreground">
+              Uncategorized
             </Badge>
           )}
 

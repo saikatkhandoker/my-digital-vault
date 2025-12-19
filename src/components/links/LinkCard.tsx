@@ -92,7 +92,7 @@ export function LinkCard({ link }: LinkCardProps) {
                 {link.url}
               </p>
 
-              {category && (
+              {category ? (
                 <Badge 
                   variant="secondary" 
                   className="mt-2"
@@ -102,6 +102,10 @@ export function LinkCard({ link }: LinkCardProps) {
                   }}
                 >
                   {category.name}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="mt-2 bg-muted-foreground/10 text-muted-foreground">
+                  Uncategorized
                 </Badge>
               )}
 

@@ -5,10 +5,13 @@ import { cn } from '@/lib/utils';
 export function LinkCategoryFilter() {
   const { linkCategories, selectedCategory, setSelectedCategory, links } = useLinks();
 
-  const getCategoryCount = (categoryId: string | null) => {
+  const getCategoryCount = (categoryId: string | null | 'uncategorized') => {
     if (categoryId === null) return links.length;
+    if (categoryId === 'uncategorized') return links.filter(l => !l.categoryId).length;
     return links.filter(l => l.categoryId === categoryId).length;
   };
+
+  const uncategorizedCount = getCategoryCount('uncategorized');
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -19,6 +22,19 @@ export function LinkCategoryFilter() {
         className="rounded-full"
       >
         All ({getCategoryCount(null)})
+      </Button>
+
+      {/* Uncategorized filter */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setSelectedCategory(selectedCategory === 'uncategorized' ? null : 'uncategorized')}
+        className={cn(
+          'rounded-full border-2 transition-all',
+          selectedCategory === 'uncategorized' && 'bg-muted-foreground/20 border-muted-foreground'
+        )}
+      >
+        Uncategorized ({uncategorizedCount})
       </Button>
       
       {linkCategories.map((category) => {

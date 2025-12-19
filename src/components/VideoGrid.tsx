@@ -40,7 +40,13 @@ export function VideoGrid() {
   }
   
   const filteredVideos = videos.filter(v => {
-    const matchesCategory = selectedCategory ? v.categoryId === selectedCategory : true;
+    let matchesCategory = true;
+    if (selectedCategory === 'uncategorized') {
+      matchesCategory = !v.categoryId;
+    } else if (selectedCategory) {
+      matchesCategory = v.categoryId === selectedCategory;
+    }
+    
     const matchesPlatform = selectedPlatform ? detectPlatform(v.url) === selectedPlatform : true;
     
     const query = searchQuery.toLowerCase().trim();
