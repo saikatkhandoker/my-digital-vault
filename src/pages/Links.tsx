@@ -1,4 +1,5 @@
 import { NavBar } from '@/components/NavBar';
+import { Footer } from '@/components/Footer';
 import { LinkForm } from '@/components/links/LinkForm';
 import { LinkGrid } from '@/components/links/LinkGrid';
 import { LinkSearchBar } from '@/components/links/LinkSearchBar';
@@ -9,10 +10,10 @@ import { LinkProvider } from '@/context/LinkContext';
 const Links = () => {
   return (
     <LinkProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <NavBar />
         
-        <main className="container py-8">
+        <main className="container py-8 flex-1">
           <div className="mx-auto max-w-6xl space-y-8">
             {/* Link Input Form */}
             <section>
@@ -43,6 +44,8 @@ const Links = () => {
             </section>
           </div>
         </main>
+
+        <Footer />
       </div>
     </LinkProvider>
   );

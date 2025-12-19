@@ -1,4 +1,5 @@
 import { NavBar } from '@/components/NavBar';
+import { Footer } from '@/components/Footer';
 import { VideoForm } from '@/components/VideoForm';
 import { VideoGrid } from '@/components/VideoGrid';
 import { CategoryFilter } from '@/components/CategoryFilter';
@@ -10,10 +11,10 @@ import { VideoProvider } from '@/context/VideoContext';
 const Index = () => {
   return (
     <VideoProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <NavBar />
         
-        <main className="container py-8">
+        <main className="container py-8 flex-1">
           <div className="mx-auto max-w-6xl space-y-8">
             {/* Video Input Form */}
             <section>
@@ -53,6 +54,8 @@ const Index = () => {
             </section>
           </div>
         </main>
+
+        <Footer />
       </div>
     </VideoProvider>
   );
