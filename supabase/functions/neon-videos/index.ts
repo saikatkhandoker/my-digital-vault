@@ -59,6 +59,18 @@ async function initTable(client: any) {
       color TEXT NOT NULL
     )
   `);
+
+  // Create links table
+  await client.queryArray(`
+    CREATE TABLE IF NOT EXISTS links (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      favicon TEXT,
+      tags TEXT[] DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
   
   // Insert default categories if none exist
   const result = await client.queryArray('SELECT COUNT(*) FROM categories');
@@ -176,6 +188,54 @@ serve(async (req) => {
       await client.queryArray('UPDATE videos SET category_id = NULL WHERE category_id = $1', [id]);
       await client.queryArray('DELETE FROM categories WHERE id = $1', [id]);
       console.log('Category deleted:', id);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Links actions
+    if (action === 'getLinks') {
+      const result = await client.queryObject('SELECT * FROM links ORDER BY created_at DESC');
+      return new Response(
+        JSON.stringify({ links: result.rows }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'addLink') {
+      const { title, url: linkUrl, favicon, tags } = await req.json();
+      const result = await client.queryObject(
+        `INSERT INTO links (title, url, favicon, tags) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING *`,
+        [title, linkUrl, favicon, tags || []]
+      );
+      console.log('Link added:', result.rows[0]);
+      return new Response(
+        JSON.stringify({ link: result.rows[0] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'updateLink') {
+      const { id, title, url: linkUrl, favicon, tags } = await req.json();
+      const result = await client.queryObject(
+        `UPDATE links SET title = $1, url = $2, favicon = $3, tags = $4 
+         WHERE id = $5 RETURNING *`,
+        [title, linkUrl, favicon, tags || [], id]
+      );
+      console.log('Link updated:', result.rows[0]);
+      return new Response(
+        JSON.stringify({ link: result.rows[0] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'deleteLink') {
+      const { id } = await req.json();
+      await client.queryArray('DELETE FROM links WHERE id = $1', [id]);
+      console.log('Link deleted:', id);
       return new Response(
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
