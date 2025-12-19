@@ -1,226 +1,170 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Folder } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useLinks } from '@/context/LinkContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
-const colorOptions = [
-  '220 70% 50%',   // Blue
-  '150 60% 45%',   // Green
-  '35 90% 55%',    // Orange
-  '340 82% 52%',   // Pink
-  '262 83% 58%',   // Purple
-  '200 98% 39%',   // Cyan
-  '0 84% 60%',     // Red
-  '45 93% 47%',    // Yellow
+const PRESET_COLORS = [
+  '340 82% 52%',  // Pink
+  '200 98% 39%',  // Blue
+  '262 83% 58%',  // Purple
+  '142 71% 45%',  // Green
+  '25 95% 53%',   // Orange
+  '47 96% 53%',   // Yellow
+  '0 84% 60%',    // Red
+  '173 80% 40%',  // Teal
 ];
 
 export function LinkCategoryManager() {
-  const { linkCategories, addLinkCategory, updateLinkCategory, deleteLinkCategory } = useLinks();
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; color: string } | null>(null);
-  const [deletingCategory, setDeletingCategory] = useState<{ id: string; name: string } | null>(null);
   const [name, setName] = useState('');
-  const [color, setColor] = useState(colorOptions[0]);
+  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const { linkCategories, addLinkCategory, updateLinkCategory, deleteLinkCategory } = useLinks();
+  const { toast } = useToast();
 
-  const handleAdd = () => {
-    if (name.trim()) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim()) {
+      toast({ title: 'Please enter a category name', variant: 'destructive' });
+      return;
+    }
+
+    if (editingId) {
+      updateLinkCategory(editingId, { name: name.trim(), color });
+      toast({ title: 'Category updated' });
+    } else {
       addLinkCategory({ name: name.trim(), color });
-      setName('');
-      setColor(colorOptions[0]);
-      setIsAddOpen(false);
+      toast({ title: 'Category created' });
     }
+
+    setName('');
+    setColor(PRESET_COLORS[0]);
+    setEditingId(null);
   };
 
-  const handleEdit = () => {
-    if (editingCategory && name.trim()) {
-      updateLinkCategory(editingCategory.id, { name: name.trim(), color });
-      setEditingCategory(null);
-      setName('');
-      setColor(colorOptions[0]);
-    }
-  };
-
-  const openEditDialog = (category: { id: string; name: string; color: string }) => {
-    setEditingCategory(category);
+  const handleEdit = (category: { id: string; name: string; color: string }) => {
+    setEditingId(category.id);
     setName(category.name);
     setColor(category.color);
   };
 
-  const handleDelete = () => {
-    if (deletingCategory) {
-      deleteLinkCategory(deletingCategory.id);
-      setDeletingCategory(null);
-    }
+  const handleDelete = (id: string) => {
+    deleteLinkCategory(id);
+    toast({ title: 'Category deleted' });
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setName('');
+    setColor(PRESET_COLORS[0]);
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Folder className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-medium text-foreground">Link Categories</h3>
-        </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Settings className="mr-2 h-4 w-4" />
+          Manage Categories
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manage Link Categories</DialogTitle>
+        </DialogHeader>
         
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline">
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Category</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Category name..."
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Category Name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter category name"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Color</label>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`h-8 w-8 rounded-full transition-transform ${color === c ? 'ring-2 ring-primary ring-offset-2 scale-110' : 'hover:scale-110'}`}
+                  style={{ backgroundColor: `hsl(${c})` }}
+                  onClick={() => setColor(c)}
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Color</label>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setColor(c)}
-                      className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                        color === c ? 'border-foreground scale-110' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: `hsl(${c})` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-              <Button onClick={handleAdd}>Add Category</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {linkCategories.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No categories yet</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {linkCategories.map((category) => (
-            <div
-              key={category.id}
-              className="group flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
-              style={{ 
-                backgroundColor: `hsl(${category.color} / 0.15)`,
-                color: `hsl(${category.color})`,
-              }}
-            >
-              <div 
-                className="h-2.5 w-2.5 rounded-full" 
-                style={{ backgroundColor: `hsl(${category.color})` }}
-              />
-              <span>{category.name}</span>
-              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEditDialog(category)}
-                  className="p-0.5 hover:bg-background/50 rounded"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={() => setDeletingCategory({ id: category.id, name: category.name })}
-                  className="p-0.5 hover:bg-background/50 rounded"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Category</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Category name..."
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex flex-wrap gap-2">
-                {colorOptions.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                      color === c ? 'border-foreground scale-110' : 'border-transparent'
-                    }`}
-                    style={{ backgroundColor: `hsl(${c})` }}
-                  />
-                ))}
-              </div>
+              ))}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>Cancel</Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1">
+              {editingId ? (
+                <>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Update
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Category
+                </>
+              )}
+            </Button>
+            {editingId && (
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </form>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingCategory} onOpenChange={(open) => !open && setDeletingCategory(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{deletingCategory?.name}"? Links in this category will become uncategorized.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        <div className="mt-4 space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground">Existing Categories</h4>
+          {linkCategories.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No categories yet</p>
+          ) : (
+            <div className="space-y-2">
+              {linkCategories.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex items-center justify-between rounded-md border border-border p-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-4 w-4 rounded-full"
+                      style={{ backgroundColor: `hsl(${category.color})` }}
+                    />
+                    <span className="text-sm font-medium">{category.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(category)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => handleDelete(category.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

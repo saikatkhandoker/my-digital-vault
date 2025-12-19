@@ -20,16 +20,14 @@ const Links = () => {
               <LinkForm />
             </section>
 
-            {/* Category Manager */}
-            <section>
-              <LinkCategoryManager />
-            </section>
-
             {/* Search and Links */}
             <section className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Your Links</h2>
-                <p className="text-sm text-muted-foreground">Search and manage your saved links</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Your Links</h2>
+                  <p className="text-sm text-muted-foreground">Search and manage your saved links</p>
+                </div>
+                <LinkCategoryManager />
               </div>
 
               {/* Category Filter */}
