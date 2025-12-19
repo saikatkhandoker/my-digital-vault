@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useVideos } from '@/context/VideoContext';
 import { VideoCard } from './VideoCard';
+import { VideoGridSkeleton } from './VideoGridSkeleton';
 import { Video } from 'lucide-react';
 import { detectPlatform } from '@/lib/video-utils';
 import {
@@ -16,8 +17,12 @@ import {
 const ITEMS_PER_PAGE = 8;
 
 export function VideoGrid() {
-  const { videos, selectedCategory, selectedPlatform, searchQuery } = useVideos();
+  const { videos, selectedCategory, selectedPlatform, searchQuery, isLoading } = useVideos();
   const [currentPage, setCurrentPage] = useState(1);
+
+  if (isLoading) {
+    return <VideoGridSkeleton />;
+  }
   
   const filteredVideos = videos.filter(v => {
     const matchesCategory = selectedCategory ? v.categoryId === selectedCategory : true;

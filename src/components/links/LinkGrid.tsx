@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLinks } from '@/context/LinkContext';
 import { LinkCard } from './LinkCard';
+import { LinkGridSkeleton } from './LinkGridSkeleton';
 import { Link as LinkIcon } from 'lucide-react';
 import {
   Pagination,
@@ -15,8 +16,12 @@ import {
 const ITEMS_PER_PAGE = 9;
 
 export function LinkGrid() {
-  const { links, searchQuery, selectedCategory } = useLinks();
+  const { links, searchQuery, selectedCategory, isLoading } = useLinks();
   const [currentPage, setCurrentPage] = useState(1);
+
+  if (isLoading) {
+    return <LinkGridSkeleton />;
+  }
   
   const filteredLinks = links.filter(l => {
     const query = searchQuery.toLowerCase().trim();

@@ -19,6 +19,7 @@ export interface LinkContextType {
   linkCategories: LinkCategory[];
   searchQuery: string;
   selectedCategory: string | null;
+  isLoading: boolean;
   addLink: (link: Omit<Link, 'id' | 'createdAt'>) => void;
   updateLink: (id: string, link: Partial<Omit<Link, 'id' | 'createdAt'>>) => void;
   deleteLink: (id: string) => void;

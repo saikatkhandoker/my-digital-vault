@@ -24,6 +24,7 @@ export interface VideoContextType {
   selectedCategory: string | null;
   selectedPlatform: VideoPlatform | null;
   searchQuery: string;
+  isLoading: boolean;
   addVideo: (video: Omit<Video, 'id' | 'createdAt'>) => void;
   updateVideo: (id: string, video: Partial<Omit<Video, 'id' | 'createdAt'>>) => void;
   deleteVideo: (id: string) => void;
