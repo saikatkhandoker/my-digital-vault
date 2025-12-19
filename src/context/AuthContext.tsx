@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiConfig } from '@/lib/api-config';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -31,15 +31,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string): Promise<{ error?: string }> => {
+  const login = async (usernameInput: string, password: string): Promise<{ error?: string }> => {
     try {
-      const { data, error } = await supabase.functions.invoke('auth', {
-        body: { username, password }
+      const response = await fetch(apiConfig.getAuthUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: usernameInput, password }),
       });
 
-      if (error) {
-        console.error('Login error:', error);
-        return { error: 'Failed to connect to authentication service' };
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { error: data.error || 'Authentication failed' };
       }
 
       if (data.error) {
