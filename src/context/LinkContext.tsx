@@ -1,47 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Link, LinkCategory, LinkContextType } from '@/types/link';
-import { apiConfig } from '@/lib/api-config';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 const LinkContext = createContext<LinkContextType | undefined>(undefined);
 
-interface NeonLink {
-  id: string;
-  title: string;
-  url: string;
-  favicon: string | null;
-  category_id: string | null;
-  tags: string[] | null;
-  created_at: string;
-}
-
-interface NeonLinkCategory {
-  id: string;
-  name: string;
-  color: string;
-}
-
-function mapNeonLinkToLink(neonLink: NeonLink): Link {
-  return {
-    id: neonLink.id,
-    title: neonLink.title,
-    url: neonLink.url,
-    favicon: neonLink.favicon,
-    categoryId: neonLink.category_id,
-    tags: neonLink.tags || [],
-    createdAt: neonLink.created_at,
-  };
-}
-
-function mapNeonCategoryToCategory(neonCategory: NeonLinkCategory): LinkCategory {
-  return {
-    id: neonCategory.id,
-    name: neonCategory.name,
-    color: neonCategory.color,
-  };
-}
-
 export function LinkProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [links, setLinks] = useState<Link[]>([]);
   const [linkCategories, setLinkCategories] = useState<LinkCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,30 +15,49 @@ export function LinkProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
+    if (!user) {
+      setLinks([]);
+      setLinkCategories([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const [linksResult, categoriesResult] = await Promise.all([
-        fetch(apiConfig.getVideosUrl('getLinks'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        }),
-        fetch(apiConfig.getVideosUrl('getLinkCategories'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      ]);
+      // Fetch links (RLS will handle filtering)
+      const { data: linksData, error: linksError } = await supabase
+        .from('links')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      const linksData = await linksResult.json();
-      const categoriesData = await categoriesResult.json();
+      if (linksError) throw linksError;
       
-      if (linksData.links) {
-        setLinks(linksData.links.map(mapNeonLinkToLink));
-      }
-      if (categoriesData.categories) {
-        setLinkCategories(categoriesData.categories.map(mapNeonCategoryToCategory));
-      }
+      setLinks((linksData || []).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        url: l.url,
+        favicon: l.favicon,
+        categoryId: l.category_id,
+        tags: l.tags || [],
+        createdAt: l.created_at,
+        userId: l.user_id,
+      })));
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('link_categories')
+        .select('*');
+      
+      if (categoriesError) throw categoriesError;
+      
+      setLinkCategories((categoriesData || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        color: c.color,
+        userId: c.user_id,
+      })));
     } catch (error) {
       console.error('Failed to fetch links:', error);
-      toast.error('Failed to load links from server');
+      toast.error('Failed to load links');
     } finally {
       setIsLoading(false);
     }
@@ -80,30 +65,42 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const addLink = async (link: Omit<Link, 'id' | 'createdAt'>) => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     try {
-      const response = await fetch(apiConfig.getVideosUrl('addLink'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data, error } = await supabase
+        .from('links')
+        .insert({
+          user_id: user.id,
           title: link.title,
           url: link.url,
           favicon: link.favicon,
-          categoryId: link.categoryId,
+          category_id: link.categoryId,
           tags: link.tags,
-        }),
-      });
+        })
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.link) {
-        setLinks(prev => [mapNeonLinkToLink(data.link), ...prev]);
-        toast.success('Link added successfully');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinks(prev => [{
+        id: data.id,
+        title: data.title,
+        url: data.url,
+        favicon: data.favicon,
+        categoryId: data.category_id,
+        tags: data.tags || [],
+        createdAt: data.created_at,
+        userId: data.user_id,
+      }, ...prev]);
+      
+      toast.success('Link added successfully');
     } catch (error) {
       console.error('Failed to add link:', error);
       toast.error('Failed to add link');
@@ -112,30 +109,31 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   const updateLink = async (id: string, link: Partial<Omit<Link, 'id' | 'createdAt'>>) => {
     try {
-      const existingLink = links.find(l => l.id === id);
-      if (!existingLink) return;
-
-      const response = await fetch(apiConfig.getVideosUrl('updateLink'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          title: link.title ?? existingLink.title,
-          url: link.url ?? existingLink.url,
-          favicon: link.favicon ?? existingLink.favicon,
-          categoryId: link.categoryId ?? existingLink.categoryId,
-          tags: link.tags ?? existingLink.tags,
-        }),
-      });
+      const { data, error } = await supabase
+        .from('links')
+        .update({
+          title: link.title,
+          url: link.url,
+          favicon: link.favicon,
+          category_id: link.categoryId,
+          tags: link.tags,
+        })
+        .eq('id', id)
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.link) {
-        setLinks(prev => prev.map(l => l.id === id ? mapNeonLinkToLink(data.link) : l));
-        toast.success('Link updated');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinks(prev => prev.map(l => l.id === id ? {
+        ...l,
+        title: data.title,
+        url: data.url,
+        favicon: data.favicon,
+        categoryId: data.category_id,
+        tags: data.tags || [],
+      } : l));
+      
+      toast.success('Link updated');
     } catch (error) {
       console.error('Failed to update link:', error);
       toast.error('Failed to update link');
@@ -144,20 +142,15 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   const deleteLink = async (id: string) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('deleteLink'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
+      const { error } = await supabase
+        .from('links')
+        .delete()
+        .eq('id', id);
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.success) {
-        setLinks(prev => prev.filter(l => l.id !== id));
-        toast.success('Link deleted');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinks(prev => prev.filter(l => l.id !== id));
+      toast.success('Link deleted');
     } catch (error) {
       console.error('Failed to delete link:', error);
       toast.error('Failed to delete link');
@@ -165,21 +158,32 @@ export function LinkProvider({ children }: { children: ReactNode }) {
   };
 
   const addLinkCategory = async (category: Omit<LinkCategory, 'id'>) => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     try {
-      const response = await fetch(apiConfig.getVideosUrl('addLinkCategory'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: category.name, color: category.color }),
-      });
+      const { data, error } = await supabase
+        .from('link_categories')
+        .insert({
+          user_id: user.id,
+          name: category.name,
+          color: category.color,
+        })
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.category) {
-        setLinkCategories(prev => [...prev, mapNeonCategoryToCategory(data.category)]);
-        toast.success('Category added');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinkCategories(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        color: data.color,
+        userId: data.user_id,
+      }]);
+      
+      toast.success('Category added');
     } catch (error) {
       console.error('Failed to add category:', error);
       toast.error('Failed to add category');
@@ -188,20 +192,22 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   const updateLinkCategory = async (id: string, category: Omit<LinkCategory, 'id'>) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('updateLinkCategory'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name: category.name, color: category.color }),
-      });
+      const { data, error } = await supabase
+        .from('link_categories')
+        .update({ name: category.name, color: category.color })
+        .eq('id', id)
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.category) {
-        setLinkCategories(prev => prev.map(c => c.id === id ? mapNeonCategoryToCategory(data.category) : c));
-        toast.success('Category updated');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinkCategories(prev => prev.map(c => c.id === id ? {
+        ...c,
+        name: data.name,
+        color: data.color,
+      } : c));
+      
+      toast.success('Category updated');
     } catch (error) {
       console.error('Failed to update category:', error);
       toast.error('Failed to update category');
@@ -210,21 +216,16 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   const deleteLinkCategory = async (id: string) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('deleteLinkCategory'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
+      const { error } = await supabase
+        .from('link_categories')
+        .delete()
+        .eq('id', id);
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.success) {
-        setLinkCategories(prev => prev.filter(c => c.id !== id));
-        setLinks(prev => prev.map(l => l.categoryId === id ? { ...l, categoryId: null } : l));
-        toast.success('Category deleted');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setLinkCategories(prev => prev.filter(c => c.id !== id));
+      setLinks(prev => prev.map(l => l.categoryId === id ? { ...l, categoryId: null } : l));
+      toast.success('Category deleted');
     } catch (error) {
       console.error('Failed to delete category:', error);
       toast.error('Failed to delete category');

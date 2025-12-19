@@ -1,38 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Video, Category, VideoContextType } from '@/types/video';
-import { apiConfig } from '@/lib/api-config';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { VideoPlatform } from '@/lib/video-utils';
 import { toast } from 'sonner';
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined);
 
-interface NeonVideo {
-  id: string;
-  title: string;
-  url: string;
-  thumbnail: string | null;
-  channel_name: string | null;
-  channel_url: string | null;
-  category_id: string | null;
-  tags: string[] | null;
-  created_at: string;
-}
-
-function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
-  return {
-    id: neonVideo.id,
-    title: neonVideo.title,
-    url: neonVideo.url,
-    thumbnailUrl: neonVideo.thumbnail || '',
-    channelName: neonVideo.channel_name,
-    channelUrl: neonVideo.channel_url,
-    categoryId: neonVideo.category_id,
-    tags: neonVideo.tags || [],
-    createdAt: neonVideo.created_at,
-  };
-}
-
 export function VideoProvider({ children }: { children: ReactNode }) {
+  const { user, isAdmin } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -41,35 +17,51 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
+    if (!user) {
+      setVideos([]);
+      setCategories([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Fetch videos
-      const videosResult = await fetch(apiConfig.getVideosUrl('getVideos'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const videosData = await videosResult.json();
+      // Fetch videos (RLS will handle filtering)
+      const { data: videosData, error: videosError } = await supabase
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (videosData.videos) {
-        setVideos(videosData.videos.map(mapNeonVideoToVideo));
-      }
+      if (videosError) throw videosError;
+      
+      setVideos((videosData || []).map((v: any) => ({
+        id: v.id,
+        title: v.title,
+        url: v.url,
+        thumbnailUrl: v.thumbnail_url || '',
+        channelName: null,
+        channelUrl: null,
+        categoryId: v.category_id,
+        tags: v.tags || [],
+        createdAt: v.created_at,
+        userId: v.user_id,
+      })));
 
       // Fetch categories
-      const categoriesResult = await fetch(apiConfig.getVideosUrl('getCategories'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const categoriesData = await categoriesResult.json();
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('video_categories')
+        .select('*');
       
-      if (categoriesData.categories) {
-        setCategories(categoriesData.categories);
-      }
+      if (categoriesError) throw categoriesError;
+      
+      setCategories((categoriesData || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        color: c.color,
+        userId: c.user_id,
+      })));
     } catch (error) {
       console.error('Failed to fetch data:', error);
-      toast.error('Failed to load data from server');
+      toast.error('Failed to load data');
     } finally {
       setIsLoading(false);
     }
@@ -77,34 +69,45 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const addVideo = async (video: Omit<Video, 'id' | 'createdAt'>) => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     try {
-      const response = await fetch(apiConfig.getVideosUrl('addVideo'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase
+        .from('videos')
+        .insert({
+          user_id: user.id,
           title: video.title,
           url: video.url,
-          thumbnail: video.thumbnailUrl,
-          channelName: video.channelName,
-          channelUrl: video.channelUrl,
-          categoryId: video.categoryId,
+          thumbnail_url: video.thumbnailUrl,
+          platform: null,
+          category_id: video.categoryId,
           tags: video.tags,
-        }),
-      });
+        })
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.video) {
-        setVideos(prev => [mapNeonVideoToVideo(data.video), ...prev]);
-        toast.success('Video added successfully');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setVideos(prev => [{
+        id: data.id,
+        title: data.title,
+        url: data.url,
+        thumbnailUrl: data.thumbnail_url || '',
+        channelName: null,
+        channelUrl: null,
+        categoryId: data.category_id,
+        tags: data.tags || [],
+        createdAt: data.created_at,
+        userId: data.user_id,
+      }, ...prev]);
+      
+      toast.success('Video added successfully');
     } catch (error) {
       console.error('Failed to add video:', error);
       toast.error('Failed to add video');
@@ -113,34 +116,31 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const updateVideo = async (id: string, video: Partial<Omit<Video, 'id' | 'createdAt'>>) => {
     try {
-      const existingVideo = videos.find(v => v.id === id);
-      if (!existingVideo) return;
-
-      const response = await fetch(apiConfig.getVideosUrl('updateVideo'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          title: video.title ?? existingVideo.title,
-          url: video.url ?? existingVideo.url,
-          thumbnail: video.thumbnailUrl ?? existingVideo.thumbnailUrl,
-          channelName: video.channelName ?? existingVideo.channelName,
-          channelUrl: video.channelUrl ?? existingVideo.channelUrl,
-          categoryId: video.categoryId ?? existingVideo.categoryId,
-          tags: video.tags ?? existingVideo.tags,
-        }),
-      });
+      const { data, error } = await supabase
+        .from('videos')
+        .update({
+          title: video.title,
+          url: video.url,
+          thumbnail_url: video.thumbnailUrl,
+          category_id: video.categoryId,
+          tags: video.tags,
+        })
+        .eq('id', id)
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.video) {
-        setVideos(prev => prev.map(v => v.id === id ? mapNeonVideoToVideo(data.video) : v));
-        toast.success('Video updated');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setVideos(prev => prev.map(v => v.id === id ? {
+        ...v,
+        title: data.title,
+        url: data.url,
+        thumbnailUrl: data.thumbnail_url || '',
+        categoryId: data.category_id,
+        tags: data.tags || [],
+      } : v));
+      
+      toast.success('Video updated');
     } catch (error) {
       console.error('Failed to update video:', error);
       toast.error('Failed to update video');
@@ -149,22 +149,15 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const deleteVideo = async (id: string) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('deleteVideo'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      });
+      const { error } = await supabase
+        .from('videos')
+        .delete()
+        .eq('id', id);
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.success) {
-        setVideos(prev => prev.filter(v => v.id !== id));
-        toast.success('Video deleted');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setVideos(prev => prev.filter(v => v.id !== id));
+      toast.success('Video deleted');
     } catch (error) {
       console.error('Failed to delete video:', error);
       toast.error('Failed to delete video');
@@ -172,23 +165,32 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   };
 
   const addCategory = async (name: string, color: string) => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     try {
-      const response = await fetch(apiConfig.getVideosUrl('addCategory'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, color }),
-      });
+      const { data, error } = await supabase
+        .from('video_categories')
+        .insert({
+          user_id: user.id,
+          name,
+          color,
+        })
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.category) {
-        setCategories(prev => [...prev, data.category]);
-        toast.success('Category added');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setCategories(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        color: data.color,
+        userId: data.user_id,
+      }]);
+      
+      toast.success('Category added');
     } catch (error) {
       console.error('Failed to add category:', error);
       toast.error('Failed to add category');
@@ -197,22 +199,22 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const updateCategory = async (id: string, name: string, color: string) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('updateCategory'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, name, color }),
-      });
+      const { data, error } = await supabase
+        .from('video_categories')
+        .update({ name, color })
+        .eq('id', id)
+        .select()
+        .single();
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.category) {
-        setCategories(prev => prev.map(c => c.id === id ? data.category : c));
-        toast.success('Category updated');
-      } else if (data.error) {
-        toast.error(data.error);
-      }
+      setCategories(prev => prev.map(c => c.id === id ? {
+        ...c,
+        name: data.name,
+        color: data.color,
+      } : c));
+      
+      toast.success('Category updated');
     } catch (error) {
       console.error('Failed to update category:', error);
       toast.error('Failed to update category');
@@ -221,26 +223,19 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = async (id: string) => {
     try {
-      const response = await fetch(apiConfig.getVideosUrl('deleteCategory'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      });
+      const { error } = await supabase
+        .from('video_categories')
+        .delete()
+        .eq('id', id);
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (data.success) {
-        setCategories(prev => prev.filter(c => c.id !== id));
-        setVideos(prev => prev.map(v => v.categoryId === id ? { ...v, categoryId: null } : v));
-        if (selectedCategory === id) {
-          setSelectedCategory(null);
-        }
-        toast.success('Category deleted');
-      } else if (data.error) {
-        toast.error(data.error);
+      setCategories(prev => prev.filter(c => c.id !== id));
+      setVideos(prev => prev.map(v => v.categoryId === id ? { ...v, categoryId: null } : v));
+      if (selectedCategory === id) {
+        setSelectedCategory(null);
       }
+      toast.success('Category deleted');
     } catch (error) {
       console.error('Failed to delete category:', error);
       toast.error('Failed to delete category');

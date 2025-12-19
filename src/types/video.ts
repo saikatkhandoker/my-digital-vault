@@ -4,6 +4,7 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+  userId?: string;
 }
 
 export interface Video {
@@ -16,6 +17,7 @@ export interface Video {
   categoryId: string | null;
   tags: string[];
   createdAt: string;
+  userId?: string;
 }
 
 export interface VideoContextType {
