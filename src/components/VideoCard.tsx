@@ -1,8 +1,19 @@
+import { useState } from 'react';
 import { ExternalLink, Trash2, User } from 'lucide-react';
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface VideoCardProps {
   video: Video;
@@ -10,6 +21,7 @@ interface VideoCardProps {
 
 export function VideoCard({ video }: VideoCardProps) {
   const { categories, deleteVideo } = useVideos();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const category = categories.find(c => c.id === video.categoryId);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -36,66 +48,93 @@ export function VideoCard({ video }: VideoCardProps) {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
     deleteVideo(video.id);
+    setShowDeleteDialog(false);
   };
 
   return (
-    <div 
-      className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30"
-      onClick={handleClick}
-    >
-      <div className="relative aspect-video overflow-hidden bg-muted">
-        <img
-          src={video.thumbnailUrl}
-          alt={video.title}
-          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10" />
-        <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <ExternalLink className="h-5 w-5 text-background drop-shadow-md" />
+    <>
+      <div 
+        className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30"
+        onClick={handleClick}
+      >
+        <div className="relative aspect-video overflow-hidden bg-muted">
+          <img
+            src={video.thumbnailUrl}
+            alt={video.title}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10" />
+          <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+            <ExternalLink className="h-5 w-5 text-background drop-shadow-md" />
+          </div>
         </div>
-      </div>
-      
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 font-medium text-card-foreground">
-            {video.title}
-          </h3>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {video.channelName && (
-          <button
-            onClick={handleChannelClick}
-            className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            <User className="h-3.5 w-3.5" />
-            <span className="hover:underline">{video.channelName}</span>
-          </button>
-        )}
         
-        {category && (
-          <Badge 
-            variant="secondary" 
-            className="mt-2"
-            style={{ 
-              backgroundColor: `hsl(${category.color} / 0.15)`,
-              color: `hsl(${category.color})`,
-            }}
-          >
-            {category.name}
-          </Badge>
-        )}
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="line-clamp-2 font-medium text-card-foreground">
+              {video.title}
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+              onClick={handleDeleteClick}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {video.channelName && (
+            <button
+              onClick={handleChannelClick}
+              className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <User className="h-3.5 w-3.5" />
+              <span className="hover:underline">{video.channelName}</span>
+            </button>
+          )}
+          
+          {category && (
+            <Badge 
+              variant="secondary" 
+              className="mt-2"
+              style={{ 
+                backgroundColor: `hsl(${category.color} / 0.15)`,
+                color: `hsl(${category.color})`,
+              }}
+            >
+              {category.name}
+            </Badge>
+          )}
+        </div>
       </div>
-    </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Video</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{video.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
