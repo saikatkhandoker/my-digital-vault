@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Link as LinkIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,8 +11,34 @@ export function VideoForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [isFetchingTitle, setIsFetchingTitle] = useState(false);
   const { categories, addVideo } = useVideos();
   const { toast } = useToast();
+
+  // Auto-fetch video title when URL changes
+  useEffect(() => {
+    const fetchTitle = async () => {
+      if (!isValidYouTubeUrl(url)) return;
+      
+      setIsFetchingTitle(true);
+      try {
+        const response = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTitle(data.title || '');
+        }
+      } catch (error) {
+        // Silent fail - user can enter title manually
+      } finally {
+        setIsFetchingTitle(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchTitle, 500);
+    return () => clearTimeout(timeoutId);
+  }, [url]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,12 +94,12 @@ export function VideoForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor="title" className="text-sm font-medium text-foreground">
-            Title (optional)
+            Title {isFetchingTitle && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
           </label>
           <Input
             id="title"
             type="text"
-            placeholder="Video title"
+            placeholder={isFetchingTitle ? "Fetching title..." : "Video title"}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
