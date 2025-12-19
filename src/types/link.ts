@@ -1,17 +1,28 @@
+export interface LinkCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Link {
   id: string;
   url: string;
   title: string;
   favicon: string | null;
+  categoryId: string | null;
   tags: string[];
   createdAt: string;
 }
 
 export interface LinkContextType {
   links: Link[];
+  linkCategories: LinkCategory[];
   searchQuery: string;
   addLink: (link: Omit<Link, 'id' | 'createdAt'>) => void;
   updateLink: (id: string, link: Partial<Omit<Link, 'id' | 'createdAt'>>) => void;
   deleteLink: (id: string) => void;
   setSearchQuery: (query: string) => void;
+  addLinkCategory: (category: Omit<LinkCategory, 'id'>) => void;
+  updateLinkCategory: (id: string, category: Omit<LinkCategory, 'id'>) => void;
+  deleteLinkCategory: (id: string) => void;
 }

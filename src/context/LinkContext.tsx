@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Link, LinkContextType } from '@/types/link';
+import { Link, LinkCategory, LinkContextType } from '@/types/link';
 import { apiConfig } from '@/lib/api-config';
 import { toast } from 'sonner';
 
@@ -10,8 +10,15 @@ interface NeonLink {
   title: string;
   url: string;
   favicon: string | null;
+  category_id: string | null;
   tags: string[] | null;
   created_at: string;
+}
+
+interface NeonLinkCategory {
+  id: string;
+  name: string;
+  color: string;
 }
 
 function mapNeonLinkToLink(neonLink: NeonLink): Link {
@@ -20,28 +27,47 @@ function mapNeonLinkToLink(neonLink: NeonLink): Link {
     title: neonLink.title,
     url: neonLink.url,
     favicon: neonLink.favicon,
+    categoryId: neonLink.category_id,
     tags: neonLink.tags || [],
     createdAt: neonLink.created_at,
   };
 }
 
+function mapNeonCategoryToCategory(neonCategory: NeonLinkCategory): LinkCategory {
+  return {
+    id: neonCategory.id,
+    name: neonCategory.name,
+    color: neonCategory.color,
+  };
+}
+
 export function LinkProvider({ children }: { children: ReactNode }) {
   const [links, setLinks] = useState<Link[]>([]);
+  const [linkCategories, setLinkCategories] = useState<LinkCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
     try {
-      const linksResult = await fetch(apiConfig.getVideosUrl('getLinks'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const [linksResult, categoriesResult] = await Promise.all([
+        fetch(apiConfig.getVideosUrl('getLinks'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        fetch(apiConfig.getVideosUrl('getLinkCategories'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ]);
+      
       const linksData = await linksResult.json();
+      const categoriesData = await categoriesResult.json();
       
       if (linksData.links) {
         setLinks(linksData.links.map(mapNeonLinkToLink));
+      }
+      if (categoriesData.categories) {
+        setLinkCategories(categoriesData.categories.map(mapNeonCategoryToCategory));
       }
     } catch (error) {
       console.error('Failed to fetch links:', error);
@@ -59,13 +85,12 @@ export function LinkProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(apiConfig.getVideosUrl('addLink'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: link.title,
           url: link.url,
           favicon: link.favicon,
+          categoryId: link.categoryId,
           tags: link.tags,
         }),
       });
@@ -91,14 +116,13 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
       const response = await fetch(apiConfig.getVideosUrl('updateLink'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
           title: link.title ?? existingLink.title,
           url: link.url ?? existingLink.url,
           favicon: link.favicon ?? existingLink.favicon,
+          categoryId: link.categoryId ?? existingLink.categoryId,
           tags: link.tags ?? existingLink.tags,
         }),
       });
@@ -121,9 +145,7 @@ export function LinkProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(apiConfig.getVideosUrl('deleteLink'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
       
@@ -141,6 +163,73 @@ export function LinkProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addLinkCategory = async (category: Omit<LinkCategory, 'id'>) => {
+    try {
+      const response = await fetch(apiConfig.getVideosUrl('addLinkCategory'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: category.name, color: category.color }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.category) {
+        setLinkCategories(prev => [...prev, mapNeonCategoryToCategory(data.category)]);
+        toast.success('Category added');
+      } else if (data.error) {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('Failed to add category:', error);
+      toast.error('Failed to add category');
+    }
+  };
+
+  const updateLinkCategory = async (id: string, category: Omit<LinkCategory, 'id'>) => {
+    try {
+      const response = await fetch(apiConfig.getVideosUrl('updateLinkCategory'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: category.name, color: category.color }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.category) {
+        setLinkCategories(prev => prev.map(c => c.id === id ? mapNeonCategoryToCategory(data.category) : c));
+        toast.success('Category updated');
+      } else if (data.error) {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      toast.error('Failed to update category');
+    }
+  };
+
+  const deleteLinkCategory = async (id: string) => {
+    try {
+      const response = await fetch(apiConfig.getVideosUrl('deleteLinkCategory'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setLinkCategories(prev => prev.filter(c => c.id !== id));
+        setLinks(prev => prev.map(l => l.categoryId === id ? { ...l, categoryId: null } : l));
+        toast.success('Category deleted');
+      } else if (data.error) {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+      toast.error('Failed to delete category');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -152,11 +241,15 @@ export function LinkProvider({ children }: { children: ReactNode }) {
   return (
     <LinkContext.Provider value={{
       links,
+      linkCategories,
       searchQuery,
       addLink,
       updateLink,
       deleteLink,
       setSearchQuery,
+      addLinkCategory,
+      updateLinkCategory,
+      deleteLinkCategory,
     }}>
       {children}
     </LinkContext.Provider>

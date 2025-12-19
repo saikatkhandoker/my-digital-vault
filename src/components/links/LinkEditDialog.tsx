@@ -4,6 +4,7 @@ import { Link } from '@/types/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLinks } from '@/context/LinkContext';
 
@@ -14,9 +15,10 @@ interface LinkEditDialogProps {
 }
 
 export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps) {
-  const { updateLink } = useLinks();
+  const { updateLink, linkCategories } = useLinks();
   const [url, setUrl] = useState(link.url);
   const [title, setTitle] = useState(link.title);
+  const [categoryId, setCategoryId] = useState<string>(link.categoryId || '');
   const [tags, setTags] = useState<string[]>(link.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +27,7 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
     if (open) {
       setUrl(link.url);
       setTitle(link.title);
+      setCategoryId(link.categoryId || '');
       setTags(link.tags || []);
       setTagInput('');
     }
@@ -37,6 +40,7 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
     await updateLink(link.id, {
       url: url.trim(),
       title: title.trim() || url.trim(),
+      categoryId: categoryId || null,
       tags,
     });
     
@@ -95,6 +99,30 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="edit-link-category" className="text-sm font-medium text-foreground">
+              Category
+            </label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border border-border z-50">
+                {linkCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="h-3 w-3 rounded-full" 
+                        style={{ backgroundColor: `hsl(${category.color})` }}
+                      />
+                      {category.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

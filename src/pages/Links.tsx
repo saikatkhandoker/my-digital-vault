@@ -2,6 +2,7 @@ import { NavBar } from '@/components/NavBar';
 import { LinkForm } from '@/components/links/LinkForm';
 import { LinkGrid } from '@/components/links/LinkGrid';
 import { LinkSearchBar } from '@/components/links/LinkSearchBar';
+import { LinkCategoryManager } from '@/components/links/LinkCategoryManager';
 import { LinkProvider } from '@/context/LinkContext';
 
 const Links = () => {
@@ -16,6 +17,11 @@ const Links = () => {
             <section>
               <h2 className="mb-4 text-lg font-semibold text-foreground">Add New Link</h2>
               <LinkForm />
+            </section>
+
+            {/* Category Manager */}
+            <section>
+              <LinkCategoryManager />
             </section>
 
             {/* Search and Links */}

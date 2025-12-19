@@ -21,9 +21,10 @@ interface LinkCardProps {
 }
 
 export function LinkCard({ link }: LinkCardProps) {
-  const { deleteLink } = useLinks();
+  const { deleteLink, linkCategories } = useLinks();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const category = linkCategories.find(c => c.id === link.categoryId);
 
   const handleClick = () => {
     window.open(link.url, '_blank', 'noopener,noreferrer');
@@ -90,6 +91,19 @@ export function LinkCard({ link }: LinkCardProps) {
               <p className="mt-1 text-xs text-muted-foreground truncate">
                 {link.url}
               </p>
+
+              {category && (
+                <Badge 
+                  variant="secondary" 
+                  className="mt-2"
+                  style={{ 
+                    backgroundColor: `hsl(${category.color} / 0.15)`,
+                    color: `hsl(${category.color})`,
+                  }}
+                >
+                  {category.name}
+                </Badge>
+              )}
 
               {link.tags && link.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">

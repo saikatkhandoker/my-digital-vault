@@ -3,18 +3,17 @@ import { Plus, Link as LinkIcon, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
 import { useToast } from '@/hooks/use-toast';
 
 // Fetch page title from URL
 async function fetchPageTitle(url: string): Promise<string | null> {
   try {
-    // Use a CORS proxy or the URL's og:title via a simple fetch
     const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
     const data = await response.json();
     
     if (data.contents) {
-      // Extract title from HTML
       const titleMatch = data.contents.match(/<title[^>]*>([^<]+)<\/title>/i);
       if (titleMatch && titleMatch[1]) {
         return titleMatch[1].trim();
@@ -48,13 +47,13 @@ function isValidUrl(url: string): boolean {
 export function LinkForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [categoryId, setCategoryId] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isFetchingTitle, setIsFetchingTitle] = useState(false);
-  const { addLink } = useLinks();
+  const { addLink, linkCategories } = useLinks();
   const { toast } = useToast();
 
-  // Auto-fetch page title when URL changes
   useEffect(() => {
     const fetchTitle = async () => {
       if (!isValidUrl(url)) {
@@ -101,11 +100,13 @@ export function LinkForm() {
       url: url.trim(),
       title: title.trim() || url.trim(),
       favicon,
+      categoryId: categoryId || null,
       tags,
     });
 
     setUrl('');
     setTitle('');
+    setCategoryId('');
     setTags([]);
     setTagInput('');
     toast({ title: 'Link added successfully!' });
@@ -158,6 +159,31 @@ export function LinkForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+      </div>
+
+      {/* Category Select */}
+      <div className="space-y-2">
+        <label htmlFor="link-category" className="text-sm font-medium text-foreground">
+          Category
+        </label>
+        <Select value={categoryId} onValueChange={setCategoryId}>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent className="bg-background border border-border z-50">
+            {linkCategories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="h-3 w-3 rounded-full" 
+                    style={{ backgroundColor: `hsl(${category.color})` }}
+                  />
+                  {category.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tags Input */}
