@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Video, Category, VideoContextType } from '@/types/video';
-import { supabase } from '@/integrations/supabase/client';
+import { apiConfig } from '@/lib/api-config';
 import { toast } from 'sonner';
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined);
@@ -13,12 +13,6 @@ interface NeonVideo {
   channel_title: string | null;
   category_id: string | null;
   created_at: string;
-}
-
-interface NeonCategory {
-  id: string;
-  name: string;
-  color: string;
 }
 
 function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
@@ -41,21 +35,12 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const fetchData = async () => {
     try {
       // Fetch videos
-      const videosResponse = await supabase.functions.invoke('neon-videos', {
-        body: {},
+      const videosResult = await fetch(apiConfig.getVideosUrl('getVideos'), {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      
-      // Need to use query params for GET-like actions
-      const videosResult = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=getVideos`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
       const videosData = await videosResult.json();
       
       if (videosData.videos) {
@@ -63,15 +48,12 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       }
 
       // Fetch categories
-      const categoriesResult = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=getCategories`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const categoriesResult = await fetch(apiConfig.getVideosUrl('getCategories'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       const categoriesData = await categoriesResult.json();
       
       if (categoriesData.categories) {
@@ -91,22 +73,19 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const addVideo = async (video: Omit<Video, 'id' | 'createdAt'>) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=addVideo`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: video.title,
-            url: video.url,
-            thumbnail: video.thumbnailUrl,
-            channelTitle: null,
-            categoryId: video.categoryId,
-          }),
-        }
-      );
+      const response = await fetch(apiConfig.getVideosUrl('addVideo'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: video.title,
+          url: video.url,
+          thumbnail: video.thumbnailUrl,
+          channelTitle: null,
+          categoryId: video.categoryId,
+        }),
+      });
       
       const data = await response.json();
       
@@ -124,16 +103,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const deleteVideo = async (id: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=deleteVideo`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id }),
-        }
-      );
+      const response = await fetch(apiConfig.getVideosUrl('deleteVideo'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
       
       const data = await response.json();
       
@@ -151,16 +127,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const addCategory = async (name: string, color: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=addCategory`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name, color }),
-        }
-      );
+      const response = await fetch(apiConfig.getVideosUrl('addCategory'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, color }),
+      });
       
       const data = await response.json();
       
@@ -178,16 +151,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const updateCategory = async (id: string, name: string, color: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=updateCategory`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id, name, color }),
-        }
-      );
+      const response = await fetch(apiConfig.getVideosUrl('updateCategory'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, name, color }),
+      });
       
       const data = await response.json();
       
@@ -205,16 +175,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = async (id: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=deleteCategory`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id }),
-        }
-      );
+      const response = await fetch(apiConfig.getVideosUrl('deleteCategory'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
       
       const data = await response.json();
       
