@@ -4,7 +4,7 @@ import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
-import { detectPlatform, getPlatformPlaceholder } from '@/lib/video-utils';
+import { detectPlatform, getPlatformPlaceholder, extractVideoId, getYouTubeThumbnail } from '@/lib/video-utils';
 import { VideoEditDialog } from './VideoEditDialog';
 import {
   AlertDialog,
@@ -92,11 +92,25 @@ export function VideoCard({ video }: VideoCardProps) {
         onClick={handleClick}
       >
         <div className="relative aspect-video overflow-hidden bg-muted">
-          <img
-            src={video.thumbnailUrl || getPlatformPlaceholder(platform)}
-            alt={video.title}
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-          />
+          {(() => {
+            // Generate thumbnail: use stored one, or generate YouTube thumbnail, or use platform placeholder
+            let thumbnailSrc = video.thumbnailUrl;
+            if (!thumbnailSrc || thumbnailSrc === '' || thumbnailSrc === '/placeholder.svg') {
+              if (platform === 'youtube') {
+                const videoId = extractVideoId(video.url);
+                thumbnailSrc = videoId ? getYouTubeThumbnail(videoId) : getPlatformPlaceholder(platform);
+              } else {
+                thumbnailSrc = getPlatformPlaceholder(platform);
+              }
+            }
+            return (
+              <img
+                src={thumbnailSrc}
+                alt={video.title}
+                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+              />
+            );
+          })()}
           <div className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10" />
           <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
             <ExternalLink className="h-5 w-5 text-background drop-shadow-md" />
