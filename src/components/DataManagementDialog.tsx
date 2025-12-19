@@ -144,26 +144,62 @@ export function DataManagementDialog() {
         throw new Error('Invalid backup file format');
       }
 
-      // Import video categories
+      // Fetch existing data to check for duplicates
+      const [videosRes, linksRes, videoCatsRes, linkCatsRes] = await Promise.all([
+        fetch(apiConfig.getVideosUrl('getVideos'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinks'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinkCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+      ]);
+
+      const existingVideos = (await videosRes.json()).videos || [];
+      const existingLinks = (await linksRes.json()).links || [];
+      const existingVideoCats = (await videoCatsRes.json()).categories || [];
+      const existingLinkCats = (await linkCatsRes.json()).categories || [];
+
+      // Create sets of existing URLs and names for quick lookup
+      const existingVideoUrls = new Set(existingVideos.map((v: any) => v.url));
+      const existingLinkUrls = new Set(existingLinks.map((l: any) => l.url));
+      const existingVideoCatNames = new Set(existingVideoCats.map((c: any) => c.name.toLowerCase()));
+      const existingLinkCatNames = new Set(existingLinkCats.map((c: any) => c.name.toLowerCase()));
+
+      let imported = { videos: 0, links: 0, videoCategories: 0, linkCategories: 0 };
+      let skipped = { videos: 0, links: 0, videoCategories: 0, linkCategories: 0 };
+
+      // Import video categories (skip duplicates by name)
       for (const cat of data.videoCategories || []) {
+        if (existingVideoCatNames.has(cat.name.toLowerCase())) {
+          skipped.videoCategories++;
+          continue;
+        }
         await fetch(apiConfig.getVideosUrl('addCategory'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: cat.name, color: cat.color }),
         });
+        imported.videoCategories++;
       }
 
-      // Import link categories
+      // Import link categories (skip duplicates by name)
       for (const cat of data.linkCategories || []) {
+        if (existingLinkCatNames.has(cat.name.toLowerCase())) {
+          skipped.linkCategories++;
+          continue;
+        }
         await fetch(apiConfig.getVideosUrl('addLinkCategory'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: cat.name, color: cat.color }),
         });
+        imported.linkCategories++;
       }
 
-      // Import videos
+      // Import videos (skip duplicates by URL)
       for (const video of data.videos || []) {
+        if (existingVideoUrls.has(video.url)) {
+          skipped.videos++;
+          continue;
+        }
         await fetch(apiConfig.getVideosUrl('addVideo'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -177,10 +213,15 @@ export function DataManagementDialog() {
             tags: video.tags,
           }),
         });
+        imported.videos++;
       }
 
-      // Import links
+      // Import links (skip duplicates by URL)
       for (const link of data.links || []) {
+        if (existingLinkUrls.has(link.url)) {
+          skipped.links++;
+          continue;
+        }
         await fetch(apiConfig.getVideosUrl('addLink'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -188,15 +229,19 @@ export function DataManagementDialog() {
             title: link.title,
             url: link.url,
             favicon: link.favicon,
-            categoryId: null, // Categories are new, so we can't map old IDs
+            categoryId: null,
             tags: link.tags,
           }),
         });
+        imported.links++;
       }
 
+      const totalImported = imported.videos + imported.links + imported.videoCategories + imported.linkCategories;
+      const totalSkipped = skipped.videos + skipped.links + skipped.videoCategories + skipped.linkCategories;
+
       toast({ 
-        title: 'Data imported successfully!',
-        description: 'Refresh the page to see imported data.'
+        title: 'Import complete!',
+        description: `Imported ${totalImported} items${totalSkipped > 0 ? `, skipped ${totalSkipped} duplicates` : ''}. Refresh to see changes.`
       });
       setOpen(false);
     } catch (error) {
