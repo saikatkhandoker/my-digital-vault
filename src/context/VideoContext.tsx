@@ -111,6 +111,42 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateVideo = async (id: string, video: Partial<Omit<Video, 'id' | 'createdAt'>>) => {
+    try {
+      const existingVideo = videos.find(v => v.id === id);
+      if (!existingVideo) return;
+
+      const response = await fetch(apiConfig.getVideosUrl('updateVideo'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          title: video.title ?? existingVideo.title,
+          url: video.url ?? existingVideo.url,
+          thumbnail: video.thumbnailUrl ?? existingVideo.thumbnailUrl,
+          channelName: video.channelName ?? existingVideo.channelName,
+          channelUrl: video.channelUrl ?? existingVideo.channelUrl,
+          categoryId: video.categoryId ?? existingVideo.categoryId,
+          tags: video.tags ?? existingVideo.tags,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.video) {
+        setVideos(prev => prev.map(v => v.id === id ? mapNeonVideoToVideo(data.video) : v));
+        toast.success('Video updated');
+      } else if (data.error) {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('Failed to update video:', error);
+      toast.error('Failed to update video');
+    }
+  };
+
   const deleteVideo = async (id: string) => {
     try {
       const response = await fetch(apiConfig.getVideosUrl('deleteVideo'), {
@@ -227,6 +263,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       selectedPlatform,
       searchQuery,
       addVideo,
+      updateVideo,
       deleteVideo,
       addCategory,
       updateCategory,

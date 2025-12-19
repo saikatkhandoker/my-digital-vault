@@ -130,6 +130,20 @@ serve(async (req) => {
       );
     }
 
+    if (action === 'updateVideo') {
+      const { id, title, url, thumbnail, channelName, channelUrl, categoryId, tags } = await req.json();
+      const result = await client.queryObject(
+        `UPDATE videos SET title = $1, url = $2, thumbnail = $3, channel_name = $4, channel_url = $5, category_id = $6, tags = $7 
+         WHERE id = $8 RETURNING *`,
+        [title, url, thumbnail, channelName, channelUrl, categoryId, tags || [], id]
+      );
+      console.log('Video updated:', result.rows[0]);
+      return new Response(
+        JSON.stringify({ video: result.rows[0] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'addCategory') {
       const { name, color } = await req.json();
       const result = await client.queryObject(

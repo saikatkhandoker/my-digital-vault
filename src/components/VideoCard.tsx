@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ExternalLink, Trash2, User, Youtube, Facebook, Instagram } from 'lucide-react';
+import { ExternalLink, Trash2, User, Youtube, Facebook, Instagram, Pencil } from 'lucide-react';
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
 import { detectPlatform } from '@/lib/video-utils';
+import { VideoEditDialog } from './VideoEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ interface VideoCardProps {
 export function VideoCard({ video }: VideoCardProps) {
   const { categories, deleteVideo } = useVideos();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const category = categories.find(c => c.id === video.categoryId);
   const platform = detectPlatform(video.url);
 
@@ -56,6 +58,11 @@ export function VideoCard({ video }: VideoCardProps) {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowEditDialog(true);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -107,14 +114,24 @@ export function VideoCard({ video }: VideoCardProps) {
             <h3 className="line-clamp-2 font-medium text-card-foreground">
               {video.title}
             </h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-              onClick={handleDeleteClick}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                onClick={handleEditClick}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {video.channelName && (
@@ -171,6 +188,12 @@ export function VideoCard({ video }: VideoCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <VideoEditDialog 
+        video={video} 
+        open={showEditDialog} 
+        onOpenChange={setShowEditDialog} 
+      />
     </>
   );
 }
