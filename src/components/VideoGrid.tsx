@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useVideos } from '@/context/VideoContext';
 import { VideoCard } from './VideoCard';
 import { VideoGridSkeleton } from './VideoGridSkeleton';
-import { Video } from 'lucide-react';
+import { Video, Trash2, X } from 'lucide-react';
 import { detectPlatform } from '@/lib/video-utils';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Pagination,
   PaginationContent,
@@ -13,12 +15,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ITEMS_PER_PAGE = 8;
 
 export function VideoGrid() {
-  const { videos, selectedCategory, selectedPlatform, searchQuery, isLoading } = useVideos();
+  const { videos, selectedCategory, selectedPlatform, searchQuery, isLoading, deleteVideo } = useVideos();
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   if (isLoading) {
     return <VideoGridSkeleton />;
@@ -28,7 +43,6 @@ export function VideoGrid() {
     const matchesCategory = selectedCategory ? v.categoryId === selectedCategory : true;
     const matchesPlatform = selectedPlatform ? detectPlatform(v.url) === selectedPlatform : true;
     
-    // Search by title or tags
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = query
       ? v.title.toLowerCase().includes(query) || 
@@ -42,7 +56,6 @@ export function VideoGrid() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedVideos = filteredVideos.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Reset to page 1 if current page exceeds total pages after filtering
   if (currentPage > totalPages && totalPages > 0) {
     setCurrentPage(1);
   }
@@ -50,6 +63,38 @@ export function VideoGrid() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedVideos.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedVideos.map(v => v.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await deleteVideo(id);
+    }
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+    setShowBulkDeleteDialog(false);
+  };
+
+  const cancelSelection = () => {
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
   };
 
   const renderPaginationItems = () => {
@@ -117,9 +162,64 @@ export function VideoGrid() {
 
   return (
     <div className="space-y-6">
+      {/* Bulk Actions Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isSelectionMode ? (
+            <>
+              <Checkbox
+                checked={selectedIds.size === paginatedVideos.length && paginatedVideos.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isSelectionMode ? (
+            <>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedIds.size === 0}
+                onClick={() => setShowBulkDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete ({selectedIds.size})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={cancelSelection}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
+              Select
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {paginatedVideos.map((video) => (
-          <VideoCard key={video.id} video={video} />
+          <div key={video.id} className="relative">
+            {isSelectionMode && (
+              <div className="absolute left-2 top-2 z-10">
+                <Checkbox
+                  checked={selectedIds.has(video.id)}
+                  onCheckedChange={() => toggleSelection(video.id)}
+                  className="bg-background/90 border-2"
+                />
+              </div>
+            )}
+            <VideoCard video={video} />
+          </div>
         ))}
       </div>
       
@@ -142,6 +242,26 @@ export function VideoGrid() {
           </PaginationContent>
         </Pagination>
       )}
+
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Videos</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.size} video{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

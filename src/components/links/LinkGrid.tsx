@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useLinks } from '@/context/LinkContext';
 import { LinkCard } from './LinkCard';
 import { LinkGridSkeleton } from './LinkGridSkeleton';
-import { Link as LinkIcon } from 'lucide-react';
+import { Link as LinkIcon, Trash2, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Pagination,
   PaginationContent,
@@ -12,12 +14,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ITEMS_PER_PAGE = 9;
 
 export function LinkGrid() {
-  const { links, searchQuery, selectedCategory, isLoading } = useLinks();
+  const { links, searchQuery, selectedCategory, isLoading, deleteLink } = useLinks();
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   if (isLoading) {
     return <LinkGridSkeleton />;
@@ -40,7 +55,6 @@ export function LinkGrid() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedLinks = filteredLinks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Reset to page 1 if current page exceeds total pages after filtering
   if (currentPage > totalPages && totalPages > 0) {
     setCurrentPage(1);
   }
@@ -48,6 +62,38 @@ export function LinkGrid() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedLinks.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedLinks.map(l => l.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await deleteLink(id);
+    }
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+    setShowBulkDeleteDialog(false);
+  };
+
+  const cancelSelection = () => {
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
   };
 
   const renderPaginationItems = () => {
@@ -115,9 +161,64 @@ export function LinkGrid() {
 
   return (
     <div className="space-y-6">
+      {/* Bulk Actions Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isSelectionMode ? (
+            <>
+              <Checkbox
+                checked={selectedIds.size === paginatedLinks.length && paginatedLinks.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {filteredLinks.length} link{filteredLinks.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isSelectionMode ? (
+            <>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedIds.size === 0}
+                onClick={() => setShowBulkDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete ({selectedIds.size})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={cancelSelection}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setIsSelectionMode(true)}>
+              Select
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {paginatedLinks.map((link) => (
-          <LinkCard key={link.id} link={link} />
+          <div key={link.id} className="relative">
+            {isSelectionMode && (
+              <div className="absolute left-2 top-2 z-10">
+                <Checkbox
+                  checked={selectedIds.has(link.id)}
+                  onCheckedChange={() => toggleSelection(link.id)}
+                  className="bg-background/90 border-2"
+                />
+              </div>
+            )}
+            <LinkCard link={link} />
+          </div>
         ))}
       </div>
       
@@ -140,6 +241,26 @@ export function LinkGrid() {
           </PaginationContent>
         </Pagination>
       )}
+
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Links</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.size} link{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -176,11 +176,17 @@ export function VideoForm() {
           <label htmlFor="category" className="text-sm font-medium text-foreground">
             Category
           </label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
+          <Select value={categoryId || 'uncategorized'} onValueChange={(value) => setCategoryId(value === 'uncategorized' ? '' : value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="uncategorized">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-muted-foreground/30" />
+                  Uncategorized
+                </div>
+              </SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   <div className="flex items-center gap-2">
