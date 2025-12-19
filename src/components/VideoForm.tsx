@@ -176,7 +176,10 @@ export function VideoForm() {
           <label htmlFor="category" className="text-sm font-medium text-foreground">
             Category
           </label>
-          <Select value={categoryId || 'uncategorized'} onValueChange={(value) => setCategoryId(value === 'uncategorized' ? '' : value)}>
+          <Select value={categoryId || 'uncategorized'} onValueChange={(value) => {
+            console.log('Category selected:', value, 'categories available:', categories.length);
+            setCategoryId(value === 'uncategorized' ? '' : value);
+          }}>
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
