@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Youtube, Facebook, Instagram, Link as LinkIcon } from 'lucide-react';
+import { X, Youtube, Facebook, Instagram, Link as LinkIcon, Image } from 'lucide-react';
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
   const { categories, updateVideo } = useVideos();
   const [url, setUrl] = useState(video.url);
   const [title, setTitle] = useState(video.title);
+  const [thumbnailUrl, setThumbnailUrl] = useState(video.thumbnailUrl);
   const [categoryId, setCategoryId] = useState(video.categoryId || '');
   const [tags, setTags] = useState<string[]>(video.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -38,6 +39,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
     if (open) {
       setUrl(video.url);
       setTitle(video.title);
+      setThumbnailUrl(video.thumbnailUrl);
       setCategoryId(video.categoryId || '');
       setTags(video.tags || []);
       setTagInput('');
@@ -51,6 +53,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
     await updateVideo(video.id, {
       url: url.trim(),
       title: title.trim() || 'Untitled Video',
+      thumbnailUrl: thumbnailUrl.trim() || '/placeholder.svg',
       categoryId: categoryId || null,
       tags,
     });
@@ -86,12 +89,26 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Video</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Thumbnail Preview */}
+          {thumbnailUrl && thumbnailUrl !== '/placeholder.svg' && (
+            <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
+              <img 
+                src={thumbnailUrl} 
+                alt="Thumbnail preview" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                }}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <label htmlFor="edit-url" className="text-sm font-medium text-foreground">
               Video URL
@@ -125,6 +142,25 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="edit-thumbnail" className="text-sm font-medium text-foreground">
+              Thumbnail URL
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                <Image className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <Input
+                id="edit-thumbnail"
+                type="url"
+                placeholder="https://example.com/thumbnail.jpg"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
