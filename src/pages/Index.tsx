@@ -7,12 +7,13 @@ import { PlatformFilter } from '@/components/PlatformFilter';
 import { CategoryManager } from '@/components/CategoryManager';
 import { SearchBar } from '@/components/SearchBar';
 import { VideoProvider } from '@/context/VideoContext';
+import { DataManagementDialog } from '@/components/DataManagementDialog';
 
 const Index = () => {
   return (
     <VideoProvider>
       <div className="min-h-screen bg-background flex flex-col">
-        <NavBar />
+        <NavBar importExportButton={<DataManagementDialog />} />
         
         <main className="container py-8 flex-1">
           <div className="mx-auto max-w-6xl space-y-8">

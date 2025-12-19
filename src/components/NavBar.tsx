@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Youtube, LogOut, Link as LinkIcon, Menu, Moon, Sun } from 'lucide-react';
+import { Youtube, LogOut, Link as LinkIcon, Menu, Moon, Sun, FileJson } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from 'react-router-dom';
@@ -7,7 +7,11 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useTheme } from 'next-themes';
 
-export function NavBar() {
+interface NavBarProps {
+  importExportButton?: React.ReactNode;
+}
+
+export function NavBar({ importExportButton }: NavBarProps) {
   const { logout, username } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -48,7 +52,8 @@ export function NavBar() {
         </div>
 
         {/* Desktop User Menu */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-2">
+          {importExportButton}
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -65,6 +70,7 @@ export function NavBar() {
 
         {/* Mobile Menu */}
         <div className="flex md:hidden items-center gap-2">
+          {importExportButton}
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

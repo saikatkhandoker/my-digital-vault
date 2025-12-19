@@ -6,12 +6,13 @@ import { LinkSearchBar } from '@/components/links/LinkSearchBar';
 import { LinkCategoryManager } from '@/components/links/LinkCategoryManager';
 import { LinkCategoryFilter } from '@/components/links/LinkCategoryFilter';
 import { LinkProvider } from '@/context/LinkContext';
+import { DataManagementDialog } from '@/components/DataManagementDialog';
 
 const Links = () => {
   return (
     <LinkProvider>
       <div className="min-h-screen bg-background flex flex-col">
-        <NavBar />
+        <NavBar importExportButton={<DataManagementDialog />} />
         
         <main className="container py-8 flex-1">
           <div className="mx-auto max-w-6xl space-y-8">
