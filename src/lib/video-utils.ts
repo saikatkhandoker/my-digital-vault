@@ -92,13 +92,62 @@ export function getYouTubeEmbedUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+// Get platform-specific placeholder thumbnail
+export function getPlatformPlaceholder(platform: VideoPlatform): string {
+  switch (platform) {
+    case 'facebook':
+      return 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225" fill="none">
+          <rect width="400" height="225" fill="#1877F2"/>
+          <path d="M200 45c-37.5 0-67.5 30-67.5 67.5 0 33.75 24.75 61.5 57 66.75v-47.25h-17.25v-19.5h17.25v-15c0-17.25 10.5-26.25 25.5-26.25 7.5 0 15 1.5 15 1.5v16.5h-8.25c-8.25 0-10.5 5.25-10.5 10.5v12.75h18.75l-3 19.5h-15.75v47.25c32.25-5.25 57-33 57-66.75 0-37.5-30-67.5-67.5-67.5z" fill="white"/>
+        </svg>
+      `);
+    case 'instagram':
+      return 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225" fill="none">
+          <defs>
+            <linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#FCAF45"/>
+              <stop offset="25%" style="stop-color:#F77737"/>
+              <stop offset="50%" style="stop-color:#E1306C"/>
+              <stop offset="75%" style="stop-color:#C13584"/>
+              <stop offset="100%" style="stop-color:#833AB4"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="225" fill="url(#ig)"/>
+          <rect x="150" y="62.5" width="100" height="100" rx="25" stroke="white" stroke-width="8" fill="none"/>
+          <circle cx="200" cy="112.5" r="25" stroke="white" stroke-width="8" fill="none"/>
+          <circle cx="235" cy="77.5" r="8" fill="white"/>
+        </svg>
+      `);
+    case 'tiktok':
+      return 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225" fill="none">
+          <rect width="400" height="225" fill="#010101"/>
+          <path d="M235 55c0 22 18 40 40 40v25c-14 0-27-4.5-38-12.5v57c0 33.5-27 60.5-60 60.5s-60-27-60-60.5c0-33.5 27-60.5 60-60.5v25c-19.5 0-35 16-35 35.5s15.5 35.5 35 35.5 35-16 35-35.5V55h23z" fill="#25F4EE"/>
+          <path d="M240 50c0 22 18 40 40 40v25c-14 0-27-4.5-38-12.5v57c0 33.5-27 60.5-60 60.5s-60-27-60-60.5c0-33.5 27-60.5 60-60.5v25c-19.5 0-35 16-35 35.5s15.5 35.5 35 35.5 35-16 35-35.5V50h23z" fill="#FE2C55"/>
+          <path d="M237.5 52.5c0 22 18 40 40 40v25c-14 0-27-4.5-38-12.5v57c0 33.5-27 60.5-60 60.5s-60-27-60-60.5c0-33.5 27-60.5 60-60.5v25c-19.5 0-35 16-35 35.5s15.5 35.5 35 35.5 35-16 35-35.5V52.5h23z" fill="white"/>
+        </svg>
+      `);
+    case 'youtube':
+      return 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225" fill="none">
+          <rect width="400" height="225" fill="#FF0000"/>
+          <path d="M160 82.5v60l52-30-52-30z" fill="white"/>
+        </svg>
+      `);
+    default:
+      return '/placeholder.svg';
+  }
+}
+
 // Get thumbnail for any platform
 export function getThumbnail(url: string, platform: VideoPlatform, videoId: string | null): string {
   if (platform === 'youtube' && videoId) {
     return getYouTubeThumbnail(videoId);
   }
-  // Other platforms don't provide easy thumbnail access, use a placeholder
-  return '/placeholder.svg';
+  // Other platforms don't provide easy thumbnail access, use platform-specific placeholder
+  return getPlatformPlaceholder(platform);
 }
 
 // Fetch metadata for different platforms
@@ -137,7 +186,7 @@ export async function fetchVideoMetadata(url: string): Promise<{
       title: '',
       channelName: '',
       channelUrl: '',
-      thumbnail: '/placeholder.svg',
+      thumbnail: getPlatformPlaceholder(platform),
     };
   }
   
