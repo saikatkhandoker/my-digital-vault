@@ -12,8 +12,15 @@ export function VideoCard({ video }: VideoCardProps) {
   const { categories, deleteVideo } = useVideos();
   const category = categories.find(c => c.id === video.categoryId);
 
-  const handleClick = () => {
-    window.open(video.url, '_blank', 'noopener,noreferrer');
+  const handleClick = (e: React.MouseEvent) => {
+    // Use anchor behavior for better compatibility with sandboxed environments
+    const link = document.createElement('a');
+    link.href = video.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
