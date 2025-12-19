@@ -160,9 +160,17 @@ export default function PublicProfile() {
     );
   }
 
-  const showVideos = profile.share_videos && videos.length > 0;
-  const showLinks = profile.share_links && links.length > 0;
+  const showVideos = profile.share_videos;
+  const showLinks = profile.share_links;
   const defaultTab = showVideos ? 'videos' : showLinks ? 'links' : 'videos';
+
+  const getHostname = (url: string) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -326,7 +334,7 @@ export default function PublicProfile() {
                                   {link.title}
                                 </h3>
                                 <p className="text-xs text-muted-foreground truncate mt-1">
-                                  {new URL(link.url).hostname}
+                                  {getHostname(link.url)}
                                 </p>
                                 {link.category_name && (
                                   <Badge 
