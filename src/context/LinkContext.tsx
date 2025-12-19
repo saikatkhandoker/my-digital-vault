@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Link, LinkCategory, LinkContextType } from '@/types/link';
 import { apiConfig } from '@/lib/api-config';
 import { toast } from 'sonner';
+import { LinkGridSkeleton } from '@/components/links/LinkGridSkeleton';
 
 const LinkContext = createContext<LinkContextType | undefined>(undefined);
 
@@ -233,8 +234,10 @@ export function LinkProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <LinkGridSkeleton />
+        </div>
       </div>
     );
   }
