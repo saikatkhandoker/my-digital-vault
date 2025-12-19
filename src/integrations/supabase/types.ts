@@ -115,18 +115,30 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          is_public: boolean
+          public_slug: string | null
+          share_links: boolean
+          share_videos: boolean
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           email: string
           id: string
+          is_public?: boolean
+          public_slug?: string | null
+          share_links?: boolean
+          share_videos?: boolean
         }
         Update: {
           created_at?: string
           display_name?: string | null
           email?: string
           id?: string
+          is_public?: boolean
+          public_slug?: string | null
+          share_links?: boolean
+          share_videos?: boolean
         }
         Relationships: []
       }

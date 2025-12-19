@@ -10,6 +10,7 @@ import Links from "./pages/Links";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,8 @@ const App = () => (
                   <Profile />
                 </ProtectedRoute>
               } />
+              {/* Public profile route - no auth required */}
+              <Route path="/u/:slug" element={<PublicProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
