@@ -4,12 +4,20 @@ import { Video } from 'lucide-react';
 import { detectPlatform } from '@/lib/video-utils';
 
 export function VideoGrid() {
-  const { videos, selectedCategory, selectedPlatform } = useVideos();
+  const { videos, selectedCategory, selectedPlatform, searchQuery } = useVideos();
   
   const filteredVideos = videos.filter(v => {
     const matchesCategory = selectedCategory ? v.categoryId === selectedCategory : true;
     const matchesPlatform = selectedPlatform ? detectPlatform(v.url) === selectedPlatform : true;
-    return matchesCategory && matchesPlatform;
+    
+    // Search by title or tags
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = query
+      ? v.title.toLowerCase().includes(query) || 
+        v.tags.some(tag => tag.toLowerCase().includes(query))
+      : true;
+    
+    return matchesCategory && matchesPlatform && matchesSearch;
   });
 
   if (filteredVideos.length === 0) {

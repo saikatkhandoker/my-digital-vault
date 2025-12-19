@@ -14,6 +14,7 @@ interface NeonVideo {
   channel_name: string | null;
   channel_url: string | null;
   category_id: string | null;
+  tags: string[] | null;
   created_at: string;
 }
 
@@ -26,6 +27,7 @@ function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
     channelName: neonVideo.channel_name,
     channelUrl: neonVideo.channel_url,
     categoryId: neonVideo.category_id,
+    tags: neonVideo.tags || [],
     createdAt: neonVideo.created_at,
   };
 }
@@ -35,6 +37,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<VideoPlatform | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
@@ -90,6 +93,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
           channelName: video.channelName,
           channelUrl: video.channelUrl,
           categoryId: video.categoryId,
+          tags: video.tags,
         }),
       });
       
@@ -221,6 +225,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       categories,
       selectedCategory,
       selectedPlatform,
+      searchQuery,
       addVideo,
       deleteVideo,
       addCategory,
@@ -228,6 +233,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       deleteCategory,
       setSelectedCategory,
       setSelectedPlatform,
+      setSearchQuery,
     }}>
       {children}
     </VideoContext.Provider>

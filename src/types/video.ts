@@ -14,6 +14,7 @@ export interface Video {
   channelName: string | null;
   channelUrl: string | null;
   categoryId: string | null;
+  tags: string[];
   createdAt: string;
 }
 
@@ -22,6 +23,7 @@ export interface VideoContextType {
   categories: Category[];
   selectedCategory: string | null;
   selectedPlatform: VideoPlatform | null;
+  searchQuery: string;
   addVideo: (video: Omit<Video, 'id' | 'createdAt'>) => void;
   deleteVideo: (id: string) => void;
   addCategory: (name: string, color: string) => void;
@@ -29,4 +31,5 @@ export interface VideoContextType {
   deleteCategory: (id: string) => void;
   setSelectedCategory: (id: string | null) => void;
   setSelectedPlatform: (platform: VideoPlatform | null) => void;
+  setSearchQuery: (query: string) => void;
 }

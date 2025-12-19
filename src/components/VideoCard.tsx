@@ -139,6 +139,16 @@ export function VideoCard({ video }: VideoCardProps) {
               {category.name}
             </Badge>
           )}
+
+          {video.tags && video.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {video.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

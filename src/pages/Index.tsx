@@ -4,6 +4,7 @@ import { VideoGrid } from '@/components/VideoGrid';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { PlatformFilter } from '@/components/PlatformFilter';
 import { CategoryManager } from '@/components/CategoryManager';
+import { SearchBar } from '@/components/SearchBar';
 import { VideoProvider } from '@/context/VideoContext';
 
 const Index = () => {
@@ -25,10 +26,13 @@ const Index = () => {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Your Videos</h2>
-                  <p className="text-sm text-muted-foreground">Filter by platform or category</p>
+                  <p className="text-sm text-muted-foreground">Search, filter by platform or category</p>
                 </div>
                 <CategoryManager />
               </div>
+
+              {/* Search Bar */}
+              <SearchBar />
               
               {/* Platform Filter */}
               <div className="space-y-2">
