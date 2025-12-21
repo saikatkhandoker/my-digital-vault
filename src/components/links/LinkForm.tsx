@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Link as LinkIcon, Loader2, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Link as LinkIcon, Loader2, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,42 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-// Fetch page title from URL with timeout
+// Fetch page title from edge function (server-side)
 async function fetchPageTitle(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-  
   try {
-    const response = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      { signal: controller.signal }
-    );
-    clearTimeout(timeoutId);
-    const data = await response.json();
+    const { data, error } = await supabase.functions.invoke('neon-videos', {
+      body: { url },
+      headers: { 'Content-Type': 'application/json' },
+    });
     
-    if (data.contents) {
-      const titleMatch = data.contents.match(/<title[^>]*>([^<]+)<\/title>/i);
-      if (titleMatch && titleMatch[1]) {
-        // Decode HTML entities
-        const decoded = titleMatch[1]
-          .trim()
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'");
-        return decoded;
+    // Add action param via query string workaround
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neon-videos?action=fetchTitle`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
       }
-    }
-    return null;
+    );
+    
+    const result = await response.json();
+    return result.title || null;
   } catch (error) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('Title fetch timed out');
-    } else {
-      console.error('Failed to fetch page title:', error);
-    }
+    console.error('Failed to fetch page title:', error);
     return null;
   }
 }
@@ -73,31 +61,48 @@ export function LinkForm() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isFetchingTitle, setIsFetchingTitle] = useState(false);
+  const [lastFetchedUrl, setLastFetchedUrl] = useState('');
   const { addLink, linkCategories } = useLinks();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchTitle = async () => {
-      if (!isValidUrl(url)) {
-        return;
+  const fetchTitle = useCallback(async (targetUrl: string) => {
+    if (!isValidUrl(targetUrl) || isFetchingTitle) {
+      return;
+    }
+    
+    setIsFetchingTitle(true);
+    try {
+      const pageTitle = await fetchPageTitle(targetUrl);
+      if (pageTitle) {
+        setTitle(pageTitle);
+        toast({ title: 'Title fetched successfully!' });
+      } else {
+        toast({ title: 'Could not fetch title', description: 'You can enter it manually', variant: 'destructive' });
       }
-      
-      setIsFetchingTitle(true);
-      try {
-        const pageTitle = await fetchPageTitle(url);
-        if (pageTitle) {
-          setTitle(pageTitle);
-        }
-      } catch (error) {
-        console.error('Failed to fetch title:', error);
-      } finally {
-        setIsFetchingTitle(false);
-      }
-    };
+      setLastFetchedUrl(targetUrl);
+    } catch (error) {
+      console.error('Failed to fetch title:', error);
+      toast({ title: 'Failed to fetch title', variant: 'destructive' });
+    } finally {
+      setIsFetchingTitle(false);
+    }
+  }, [isFetchingTitle, toast]);
 
-    const timeoutId = setTimeout(fetchTitle, 500);
+  useEffect(() => {
+    if (!isValidUrl(url) || url === lastFetchedUrl) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => fetchTitle(url), 500);
     return () => clearTimeout(timeoutId);
-  }, [url]);
+  }, [url, lastFetchedUrl, fetchTitle]);
+
+  const handleRefreshTitle = () => {
+    if (isValidUrl(url)) {
+      setLastFetchedUrl(''); // Reset to allow refetch
+      fetchTitle(url);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,15 +179,34 @@ export function LinkForm() {
 
       <div className="space-y-2">
         <label htmlFor="link-title" className="text-sm font-medium text-foreground">
-          Title {isFetchingTitle && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+          Title
         </label>
-        <Input
-          id="link-title"
-          type="text"
-          placeholder={isFetchingTitle ? "Fetching title..." : "Link title"}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              id="link-title"
+              type="text"
+              placeholder={isFetchingTitle ? "Fetching title..." : "Link title"}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            {isFetchingTitle && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleRefreshTitle}
+            disabled={!isValidUrl(url) || isFetchingTitle}
+            title="Refresh title"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetchingTitle ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">

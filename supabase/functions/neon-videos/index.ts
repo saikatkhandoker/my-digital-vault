@@ -333,6 +333,53 @@ serve(async (req) => {
       );
     }
 
+    // Fetch page title action
+    if (action === 'fetchTitle') {
+      const { url: targetUrl } = await req.json();
+      console.log('Fetching title for:', targetUrl);
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(targetUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; LinkBot/1.0)',
+            'Accept': 'text/html,application/xhtml+xml',
+          },
+        });
+        clearTimeout(timeoutId);
+        
+        const html = await response.text();
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        
+        let title = null;
+        if (titleMatch && titleMatch[1]) {
+          title = titleMatch[1]
+            .trim()
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+        }
+        
+        console.log('Fetched title:', title);
+        return new Response(
+          JSON.stringify({ title }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('Title fetch error:', error);
+        return new Response(
+          JSON.stringify({ title: null, error: 'Failed to fetch title' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
