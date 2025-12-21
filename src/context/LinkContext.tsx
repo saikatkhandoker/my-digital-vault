@@ -9,6 +9,7 @@ interface NeonLink {
   id: string;
   title: string;
   url: string;
+  description: string | null;
   favicon: string | null;
   category_id: string | null;
   tags: string[] | null;
@@ -26,6 +27,7 @@ function mapNeonLinkToLink(neonLink: NeonLink): Link {
     id: neonLink.id,
     title: neonLink.title,
     url: neonLink.url,
+    description: neonLink.description,
     favicon: neonLink.favicon,
     categoryId: neonLink.category_id,
     tags: neonLink.tags || [],
@@ -90,6 +92,7 @@ export function LinkProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           title: link.title,
           url: link.url,
+          description: link.description,
           favicon: link.favicon,
           categoryId: link.categoryId,
           tags: link.tags,
@@ -122,6 +125,7 @@ export function LinkProvider({ children }: { children: ReactNode }) {
           id,
           title: link.title ?? existingLink.title,
           url: link.url ?? existingLink.url,
+          description: link.description ?? existingLink.description,
           favicon: link.favicon ?? existingLink.favicon,
           categoryId: link.categoryId ?? existingLink.categoryId,
           tags: link.tags ?? existingLink.tags,

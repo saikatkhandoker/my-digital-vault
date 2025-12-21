@@ -3,6 +3,7 @@ import { X, Link as LinkIcon } from 'lucide-react';
 import { Link } from '@/types/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -18,6 +19,7 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
   const { updateLink, linkCategories } = useLinks();
   const [url, setUrl] = useState(link.url);
   const [title, setTitle] = useState(link.title);
+  const [description, setDescription] = useState(link.description || '');
   const [categoryId, setCategoryId] = useState<string>(link.categoryId || '');
   const [tags, setTags] = useState<string[]>(link.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -27,6 +29,7 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
     if (open) {
       setUrl(link.url);
       setTitle(link.title);
+      setDescription(link.description || '');
       setCategoryId(link.categoryId || '');
       setTags(link.tags || []);
       setTagInput('');
@@ -40,6 +43,7 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
     await updateLink(link.id, {
       url: url.trim(),
       title: title.trim() || url.trim(),
+      description: description.trim() || null,
       categoryId: categoryId || null,
       tags,
     });
@@ -98,6 +102,19 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="edit-link-description" className="text-sm font-medium text-foreground">
+              Description
+            </label>
+            <Textarea
+              id="edit-link-description"
+              placeholder="Optional description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
             />
           </div>
 

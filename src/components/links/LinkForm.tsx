@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Link as LinkIcon, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
@@ -47,6 +48,7 @@ function isValidUrl(url: string): boolean {
 export function LinkForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -99,6 +101,7 @@ export function LinkForm() {
     addLink({
       url: url.trim(),
       title: title.trim() || url.trim(),
+      description: description.trim() || null,
       favicon,
       categoryId: categoryId || null,
       tags,
@@ -106,6 +109,7 @@ export function LinkForm() {
 
     setUrl('');
     setTitle('');
+    setDescription('');
     setCategoryId('');
     setTags([]);
     setTagInput('');
@@ -158,6 +162,19 @@ export function LinkForm() {
           placeholder={isFetchingTitle ? "Fetching title..." : "Link title"}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="link-description" className="text-sm font-medium text-foreground">
+          Description
+        </label>
+        <Textarea
+          id="link-description"
+          placeholder="Optional description..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
         />
       </div>
 

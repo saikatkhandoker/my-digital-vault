@@ -3,6 +3,7 @@ import { X, Youtube, Facebook, Instagram, Link as LinkIcon, Image } from 'lucide
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
   const { categories, updateVideo } = useVideos();
   const [url, setUrl] = useState(video.url);
   const [title, setTitle] = useState(video.title);
+  const [description, setDescription] = useState(video.description || '');
   const [thumbnailUrl, setThumbnailUrl] = useState(video.thumbnailUrl);
   const [categoryId, setCategoryId] = useState(video.categoryId || '');
   const [tags, setTags] = useState<string[]>(video.tags || []);
@@ -39,6 +41,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
     if (open) {
       setUrl(video.url);
       setTitle(video.title);
+      setDescription(video.description || '');
       setThumbnailUrl(video.thumbnailUrl);
       setCategoryId(video.categoryId || '');
       setTags(video.tags || []);
@@ -53,6 +56,7 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
     await updateVideo(video.id, {
       url: url.trim(),
       title: title.trim() || 'Untitled Video',
+      description: description.trim() || null,
       thumbnailUrl: thumbnailUrl.trim() || '/placeholder.svg',
       categoryId: categoryId || null,
       tags,
@@ -141,6 +145,19 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="edit-description" className="text-sm font-medium text-foreground">
+              Description
+            </label>
+            <Textarea
+              id="edit-description"
+              placeholder="Optional description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
             />
           </div>
 

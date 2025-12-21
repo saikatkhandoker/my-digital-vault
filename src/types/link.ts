@@ -8,6 +8,7 @@ export interface Link {
   id: string;
   url: string;
   title: string;
+  description: string | null;
   favicon: string | null;
   categoryId: string | null;
   tags: string[];

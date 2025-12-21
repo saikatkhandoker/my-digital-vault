@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Link as LinkIcon, Loader2, Youtube, Facebook, Instagram, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
@@ -20,6 +21,7 @@ function TikTokIcon({ className }: { className?: string }) {
 export function VideoForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [channelName, setChannelName] = useState('');
   const [channelUrl, setChannelUrl] = useState('');
   const [thumbnail, setThumbnail] = useState('');
@@ -87,6 +89,7 @@ export function VideoForm() {
     addVideo({
       url: url.trim(),
       title: title.trim() || 'Untitled Video',
+      description: description.trim() || null,
       thumbnailUrl: finalThumbnail,
       channelName: channelName.trim() || null,
       channelUrl: channelUrl.trim() || null,
@@ -96,6 +99,7 @@ export function VideoForm() {
 
     setUrl('');
     setTitle('');
+    setDescription('');
     setChannelName('');
     setChannelUrl('');
     setThumbnail('');
@@ -204,6 +208,19 @@ export function VideoForm() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="description" className="text-sm font-medium text-foreground">
+          Description
+        </label>
+        <Textarea
+          id="description"
+          placeholder="Optional description..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+        />
       </div>
 
       {/* Tags Input */}

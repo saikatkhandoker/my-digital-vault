@@ -10,6 +10,7 @@ interface NeonVideo {
   id: string;
   title: string;
   url: string;
+  description: string | null;
   thumbnail: string | null;
   channel_name: string | null;
   channel_url: string | null;
@@ -23,6 +24,7 @@ function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
     id: neonVideo.id,
     title: neonVideo.title,
     url: neonVideo.url,
+    description: neonVideo.description,
     thumbnailUrl: neonVideo.thumbnail || '',
     channelName: neonVideo.channel_name,
     channelUrl: neonVideo.channel_url,
@@ -89,6 +91,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           title: video.title,
           url: video.url,
+          description: video.description,
           thumbnail: video.thumbnailUrl,
           channelName: video.channelName,
           channelUrl: video.channelUrl,
@@ -125,6 +128,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
           id,
           title: video.title ?? existingVideo.title,
           url: video.url ?? existingVideo.url,
+          description: video.description ?? existingVideo.description,
           thumbnail: video.thumbnailUrl ?? existingVideo.thumbnailUrl,
           channelName: video.channelName ?? existingVideo.channelName,
           channelUrl: video.channelUrl ?? existingVideo.channelUrl,

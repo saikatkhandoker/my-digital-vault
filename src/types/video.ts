@@ -10,6 +10,7 @@ export interface Video {
   id: string;
   url: string;
   title: string;
+  description: string | null;
   thumbnailUrl: string;
   channelName: string | null;
   channelUrl: string | null;

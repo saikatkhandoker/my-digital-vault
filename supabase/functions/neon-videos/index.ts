@@ -49,6 +49,19 @@ async function initTable(client: any) {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='tags') THEN
         ALTER TABLE videos ADD COLUMN tags TEXT[] DEFAULT '{}';
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='videos' AND column_name='description') THEN
+        ALTER TABLE videos ADD COLUMN description TEXT;
+      END IF;
+    END $$;
+  `);
+
+  // Add description column to links if it doesn't exist
+  await client.queryArray(`
+    DO $$ 
+    BEGIN 
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='links' AND column_name='description') THEN
+        ALTER TABLE links ADD COLUMN description TEXT;
+      END IF;
     END $$;
   `);
   
@@ -149,12 +162,12 @@ serve(async (req) => {
     }
 
     if (action === 'addVideo') {
-      const { title, url: videoUrl, thumbnail, channelName, channelUrl, categoryId, tags } = await req.json();
+      const { title, url: videoUrl, thumbnail, channelName, channelUrl, categoryId, tags, description } = await req.json();
       const result = await client.queryObject(
-        `INSERT INTO videos (title, url, thumbnail, channel_name, channel_url, category_id, tags) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        `INSERT INTO videos (title, url, thumbnail, channel_name, channel_url, category_id, tags, description) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING *`,
-        [title, videoUrl, thumbnail, channelName, channelUrl, categoryId, tags || []]
+        [title, videoUrl, thumbnail, channelName, channelUrl, categoryId, tags || [], description || null]
       );
       console.log('Video added:', result.rows[0]);
       return new Response(
@@ -174,11 +187,11 @@ serve(async (req) => {
     }
 
     if (action === 'updateVideo') {
-      const { id, title, url, thumbnail, channelName, channelUrl, categoryId, tags } = await req.json();
+      const { id, title, url, thumbnail, channelName, channelUrl, categoryId, tags, description } = await req.json();
       const result = await client.queryObject(
-        `UPDATE videos SET title = $1, url = $2, thumbnail = $3, channel_name = $4, channel_url = $5, category_id = $6, tags = $7 
-         WHERE id = $8 RETURNING *`,
-        [title, url, thumbnail, channelName, channelUrl, categoryId, tags || [], id]
+        `UPDATE videos SET title = $1, url = $2, thumbnail = $3, channel_name = $4, channel_url = $5, category_id = $6, tags = $7, description = $8 
+         WHERE id = $9 RETURNING *`,
+        [title, url, thumbnail, channelName, channelUrl, categoryId, tags || [], description || null, id]
       );
       console.log('Video updated:', result.rows[0]);
       return new Response(
@@ -235,12 +248,12 @@ serve(async (req) => {
     }
 
     if (action === 'addLink') {
-      const { title, url: linkUrl, favicon, categoryId, tags } = await req.json();
+      const { title, url: linkUrl, favicon, categoryId, tags, description } = await req.json();
       const result = await client.queryObject(
-        `INSERT INTO links (title, url, favicon, category_id, tags) 
-         VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO links (title, url, favicon, category_id, tags, description) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
-        [title, linkUrl, favicon, categoryId, tags || []]
+        [title, linkUrl, favicon, categoryId, tags || [], description || null]
       );
       console.log('Link added:', result.rows[0]);
       return new Response(
@@ -250,11 +263,11 @@ serve(async (req) => {
     }
 
     if (action === 'updateLink') {
-      const { id, title, url: linkUrl, favicon, categoryId, tags } = await req.json();
+      const { id, title, url: linkUrl, favicon, categoryId, tags, description } = await req.json();
       const result = await client.queryObject(
-        `UPDATE links SET title = $1, url = $2, favicon = $3, category_id = $4, tags = $5 
-         WHERE id = $6 RETURNING *`,
-        [title, linkUrl, favicon, categoryId, tags || [], id]
+        `UPDATE links SET title = $1, url = $2, favicon = $3, category_id = $4, tags = $5, description = $6 
+         WHERE id = $7 RETURNING *`,
+        [title, linkUrl, favicon, categoryId, tags || [], description || null, id]
       );
       console.log('Link updated:', result.rows[0]);
       return new Response(
