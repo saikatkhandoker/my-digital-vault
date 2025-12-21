@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, Trash2, User, Youtube, Facebook, Instagram, Pencil } from 'lucide-react';
+import { ExternalLink, Trash2, User, Youtube, Facebook, Instagram, Pencil, Info } from 'lucide-react';
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // TikTok icon component
 function TikTokIcon({ className }: { className?: string }) {
@@ -129,6 +135,25 @@ export function VideoCard({ video }: VideoCardProps) {
               {video.title}
             </h3>
             <div className="flex shrink-0 gap-1">
+              {video.description && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm">{video.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <Button
                 variant="ghost"
                 size="icon"

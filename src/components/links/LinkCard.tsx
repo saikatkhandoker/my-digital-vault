@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, Trash2, Pencil } from 'lucide-react';
+import { ExternalLink, Trash2, Pencil, Info } from 'lucide-react';
 import { Link } from '@/types/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface LinkCardProps {
   link: Link;
@@ -69,6 +75,25 @@ export function LinkCard({ link }: LinkCardProps) {
                   {link.title}
                 </h3>
                 <div className="flex shrink-0 gap-1">
+                  {link.description && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p className="text-sm">{link.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
