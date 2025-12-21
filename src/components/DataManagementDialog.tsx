@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { apiConfig } from '@/lib/api-config';
 
 interface VideoData {
   id: string;
@@ -50,7 +49,6 @@ interface ExportData {
 }
 
 export function DataManagementDialog() {
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -61,17 +59,22 @@ export function DataManagementDialog() {
   const fetchStats = async () => {
     try {
       const [videosRes, linksRes, videoCatsRes, linkCatsRes] = await Promise.all([
-        supabase.from('videos').select('id'),
-        supabase.from('links').select('id'),
-        supabase.from('video_categories').select('id'),
-        supabase.from('link_categories').select('id'),
+        fetch(apiConfig.getVideosUrl('getVideos'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinks'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinkCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
       ]);
       
+      const videosData = await videosRes.json();
+      const linksData = await linksRes.json();
+      const videoCatsData = await videoCatsRes.json();
+      const linkCatsData = await linkCatsRes.json();
+      
       setStats({
-        videos: videosRes.data?.length || 0,
-        links: linksRes.data?.length || 0,
-        videoCategories: videoCatsRes.data?.length || 0,
-        linkCategories: linkCatsRes.data?.length || 0,
+        videos: videosData.videos?.length || 0,
+        links: linksData.links?.length || 0,
+        videoCategories: videoCatsData.categories?.length || 0,
+        linkCategories: linkCatsData.categories?.length || 0,
       });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -89,43 +92,24 @@ export function DataManagementDialog() {
     setIsExporting(true);
     try {
       const [videosRes, linksRes, videoCatsRes, linkCatsRes] = await Promise.all([
-        supabase.from('videos').select('*'),
-        supabase.from('links').select('*'),
-        supabase.from('video_categories').select('*'),
-        supabase.from('link_categories').select('*'),
+        fetch(apiConfig.getVideosUrl('getVideos'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinks'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinkCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
       ]);
+      
+      const videosData = await videosRes.json();
+      const linksData = await linksRes.json();
+      const videoCatsData = await videoCatsRes.json();
+      const linkCatsData = await linkCatsRes.json();
 
       const exportData: ExportData = {
         version: '1.0',
         exportedAt: new Date().toISOString(),
-        videos: (videosRes.data || []).map((v: any) => ({
-          id: v.id,
-          title: v.title,
-          url: v.url,
-          thumbnailUrl: v.thumbnail_url || '',
-          channelName: null,
-          channelUrl: null,
-          categoryId: v.category_id,
-          tags: v.tags || [],
-        })),
-        videoCategories: (videoCatsRes.data || []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          color: c.color,
-        })),
-        links: (linksRes.data || []).map((l: any) => ({
-          id: l.id,
-          title: l.title,
-          url: l.url,
-          favicon: l.favicon,
-          categoryId: l.category_id,
-          tags: l.tags || [],
-        })),
-        linkCategories: (linkCatsRes.data || []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          color: c.color,
-        })),
+        videos: videosData.videos || [],
+        videoCategories: videoCatsData.categories || [],
+        links: linksData.links || [],
+        linkCategories: linkCatsData.categories || [],
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -149,7 +133,7 @@ export function DataManagementDialog() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
     setIsImporting(true);
     try {
@@ -162,16 +146,22 @@ export function DataManagementDialog() {
 
       // Fetch existing data to check for duplicates
       const [videosRes, linksRes, videoCatsRes, linkCatsRes] = await Promise.all([
-        supabase.from('videos').select('url'),
-        supabase.from('links').select('url'),
-        supabase.from('video_categories').select('name'),
-        supabase.from('link_categories').select('name'),
+        fetch(apiConfig.getVideosUrl('getVideos'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinks'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+        fetch(apiConfig.getVideosUrl('getLinkCategories'), { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
       ]);
 
-      const existingVideoUrls = new Set((videosRes.data || []).map((v: any) => v.url));
-      const existingLinkUrls = new Set((linksRes.data || []).map((l: any) => l.url));
-      const existingVideoCatNames = new Set((videoCatsRes.data || []).map((c: any) => c.name.toLowerCase()));
-      const existingLinkCatNames = new Set((linkCatsRes.data || []).map((c: any) => c.name.toLowerCase()));
+      const existingVideos = (await videosRes.json()).videos || [];
+      const existingLinks = (await linksRes.json()).links || [];
+      const existingVideoCats = (await videoCatsRes.json()).categories || [];
+      const existingLinkCats = (await linkCatsRes.json()).categories || [];
+
+      // Create sets of existing URLs and names for quick lookup
+      const existingVideoUrls = new Set(existingVideos.map((v: any) => v.url));
+      const existingLinkUrls = new Set(existingLinks.map((l: any) => l.url));
+      const existingVideoCatNames = new Set(existingVideoCats.map((c: any) => c.name.toLowerCase()));
+      const existingLinkCatNames = new Set(existingLinkCats.map((c: any) => c.name.toLowerCase()));
 
       let imported = { videos: 0, links: 0, videoCategories: 0, linkCategories: 0 };
       let skipped = { videos: 0, links: 0, videoCategories: 0, linkCategories: 0 };
@@ -182,12 +172,12 @@ export function DataManagementDialog() {
           skipped.videoCategories++;
           continue;
         }
-        const { error } = await supabase.from('video_categories').insert({
-          user_id: user.id,
-          name: cat.name,
-          color: cat.color,
+        await fetch(apiConfig.getVideosUrl('addCategory'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cat.name, color: cat.color }),
         });
-        if (!error) imported.videoCategories++;
+        imported.videoCategories++;
       }
 
       // Import link categories (skip duplicates by name)
@@ -196,12 +186,12 @@ export function DataManagementDialog() {
           skipped.linkCategories++;
           continue;
         }
-        const { error } = await supabase.from('link_categories').insert({
-          user_id: user.id,
-          name: cat.name,
-          color: cat.color,
+        await fetch(apiConfig.getVideosUrl('addLinkCategory'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cat.name, color: cat.color }),
         });
-        if (!error) imported.linkCategories++;
+        imported.linkCategories++;
       }
 
       // Import videos (skip duplicates by URL)
@@ -210,15 +200,20 @@ export function DataManagementDialog() {
           skipped.videos++;
           continue;
         }
-        const { error } = await supabase.from('videos').insert({
-          user_id: user.id,
-          title: video.title,
-          url: video.url,
-          thumbnail_url: video.thumbnailUrl,
-          category_id: null,
-          tags: video.tags,
+        await fetch(apiConfig.getVideosUrl('addVideo'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: video.title,
+            url: video.url,
+            thumbnail: video.thumbnailUrl,
+            channelName: video.channelName,
+            channelUrl: video.channelUrl,
+            categoryId: null,
+            tags: video.tags,
+          }),
         });
-        if (!error) imported.videos++;
+        imported.videos++;
       }
 
       // Import links (skip duplicates by URL)
@@ -227,15 +222,18 @@ export function DataManagementDialog() {
           skipped.links++;
           continue;
         }
-        const { error } = await supabase.from('links').insert({
-          user_id: user.id,
-          title: link.title,
-          url: link.url,
-          favicon: link.favicon,
-          category_id: null,
-          tags: link.tags,
+        await fetch(apiConfig.getVideosUrl('addLink'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: link.title,
+            url: link.url,
+            favicon: link.favicon,
+            categoryId: null,
+            tags: link.tags,
+          }),
         });
-        if (!error) imported.links++;
+        imported.links++;
       }
 
       const totalImported = imported.videos + imported.links + imported.videoCategories + imported.linkCategories;

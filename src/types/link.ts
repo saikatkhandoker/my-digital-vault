@@ -2,7 +2,6 @@ export interface LinkCategory {
   id: string;
   name: string;
   color: string;
-  userId?: string;
 }
 
 export interface Link {
@@ -13,7 +12,6 @@ export interface Link {
   categoryId: string | null;
   tags: string[];
   createdAt: string;
-  userId?: string;
 }
 
 export interface LinkContextType {

@@ -8,9 +8,6 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Links from "./pages/Links";
 import Login from "./pages/Login";
-import Admin from "./pages/Admin";
-import Profile from "./pages/Profile";
-import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,18 +72,6 @@ const App = () => (
                   <Links />
                 </ProtectedRoute>
               } />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              {/* Public profile route - no auth required */}
-              <Route path="/u/:slug" element={<PublicProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

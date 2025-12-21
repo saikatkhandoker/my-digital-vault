@@ -1,202 +1,85 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-
-type AppRole = 'admin' | 'user';
-
-interface Profile {
-  id: string;
-  email: string;
-  display_name: string | null;
-  created_at: string;
-}
+import { apiConfig } from '@/lib/api-config';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: Profile | null;
-  role: AppRole | null;
-  isAdmin: boolean;
   isAuthenticated: boolean;
+  username: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
-  signup: (email: string, password: string, displayName?: string) => Promise<{ error?: string }>;
-  logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  login: (username: string, password: string) => Promise<{ error?: string }>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_TOKEN_KEY = 'video-manager-auth-token';
+const AUTH_USER_KEY = 'video-manager-auth-user';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserData = async (userId: string) => {
-    try {
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-      } else {
-        setProfile(profileData as Profile);
-      }
-
-      // Fetch role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      if (roleError) {
-        console.error('Error fetching role:', roleError);
-      } else {
-        setRole(roleData?.role as AppRole);
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
-
-  const logActivity = async (userId: string, action: string, entityType?: string, entityId?: string, metadata?: Record<string, any>) => {
-    try {
-      await supabase.from('activity_logs').insert({
-        user_id: userId,
-        action,
-        entity_type: entityType || null,
-        entity_id: entityId || null,
-        metadata: metadata || null,
-      });
-    } catch (error) {
-      console.error('Error logging activity:', error);
-    }
-  };
-
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer Supabase calls with setTimeout
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for existing session
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const user = localStorage.getItem(AUTH_USER_KEY);
+    
+    if (token && user) {
+      setIsAuthenticated(true);
+      setUsername(user);
+    }
+    setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ error?: string }> => {
+  const login = async (usernameInput: string, password: string): Promise<{ error?: string }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch(apiConfig.getAuthUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: usernameInput, password }),
       });
 
-      if (error) {
-        return { error: error.message };
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { error: data.error || 'Authentication failed' };
       }
 
-      // Log the login activity
-      if (data.user) {
-        await logActivity(data.user.id, 'login', 'session', undefined, { email });
+      if (data.error) {
+        return { error: data.error };
       }
 
-      return {};
+      if (data.success && data.token) {
+        localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+        localStorage.setItem(AUTH_USER_KEY, data.username);
+        setIsAuthenticated(true);
+        setUsername(data.username);
+        return {};
+      }
+
+      return { error: 'Unexpected response from server' };
     } catch (err) {
       console.error('Login error:', err);
       return { error: 'Network error. Please try again.' };
     }
   };
 
-  const signup = async (email: string, password: string, displayName?: string): Promise<{ error?: string }> => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            display_name: displayName || email.split('@')[0],
-          },
-        },
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          return { error: 'This email is already registered. Please login instead.' };
-        }
-        return { error: error.message };
-      }
-
-      return {};
-    } catch (err) {
-      console.error('Signup error:', err);
-      return { error: 'Network error. Please try again.' };
-    }
-  };
-
-  const logout = async () => {
-    // Log the logout activity before signing out
-    if (user) {
-      await logActivity(user.id, 'logout', 'session');
-    }
-    
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRole(null);
-  };
-
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchUserData(user.id);
-    }
+  const logout = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    setIsAuthenticated(false);
+    setUsername(null);
   };
 
   return (
     <AuthContext.Provider value={{
-      user,
-      session,
-      profile,
-      role,
-      isAdmin: role === 'admin',
-      isAuthenticated: !!user,
+      isAuthenticated,
+      username,
       isLoading,
       login,
-      signup,
-      logout,
-      refreshProfile,
+      logout
     }}>
       {children}
     </AuthContext.Provider>
