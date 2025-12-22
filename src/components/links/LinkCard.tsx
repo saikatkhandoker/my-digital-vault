@@ -16,10 +16,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
 
 interface LinkCardProps {
   link: Link;
@@ -29,6 +31,7 @@ export function LinkCard({ link }: LinkCardProps) {
   const { deleteLink, linkCategories } = useLinks();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDescriptionDrawer, setShowDescriptionDrawer] = useState(false);
   const category = linkCategories.find(c => c.id === link.categoryId);
 
   const handleClick = () => {
@@ -75,21 +78,17 @@ export function LinkCard({ link }: LinkCardProps) {
                 </h3>
                 <div className="flex shrink-0 gap-1">
                   {link.description && (
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs z-50">
-                        <p className="text-sm">{link.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDescriptionDrawer(true);
+                      }}
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   )}
                   <Button
                     variant="ghost"
@@ -175,6 +174,26 @@ export function LinkCard({ link }: LinkCardProps) {
         open={showEditDialog} 
         onOpenChange={setShowEditDialog} 
       />
+
+      <Drawer open={showDescriptionDrawer} onOpenChange={setShowDescriptionDrawer}>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle>{link.title}</DrawerTitle>
+            <DrawerDescription className="text-base mt-2">
+              {link.description}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 pt-0">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => setShowDescriptionDrawer(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }

@@ -17,10 +17,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
 
 // TikTok icon component
 function TikTokIcon({ className }: { className?: string }) {
@@ -39,6 +41,7 @@ export function VideoCard({ video }: VideoCardProps) {
   const { categories, deleteVideo } = useVideos();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDescriptionDrawer, setShowDescriptionDrawer] = useState(false);
   const category = categories.find(c => c.id === video.categoryId);
   const platform = detectPlatform(video.url);
 
@@ -135,21 +138,17 @@ export function VideoCard({ video }: VideoCardProps) {
             </h3>
             <div className="flex shrink-0 gap-1">
               {video.description && (
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Info className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs z-50">
-                    <p className="text-sm">{video.description}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDescriptionDrawer(true);
+                  }}
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
               )}
               <Button
                 variant="ghost"
@@ -234,6 +233,26 @@ export function VideoCard({ video }: VideoCardProps) {
         open={showEditDialog} 
         onOpenChange={setShowEditDialog} 
       />
+
+      <Drawer open={showDescriptionDrawer} onOpenChange={setShowDescriptionDrawer}>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle>{video.title}</DrawerTitle>
+            <DrawerDescription className="text-base mt-2">
+              {video.description}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 pt-0">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => setShowDescriptionDrawer(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }
