@@ -3,7 +3,7 @@ import { X, Youtube, Facebook, Instagram, Link as LinkIcon, Image } from 'lucide
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -149,15 +149,13 @@ export function VideoEditDialog({ video, open, onOpenChange }: VideoEditDialogPr
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="edit-description" className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-foreground">
               Description
             </label>
-            <Textarea
-              id="edit-description"
-              placeholder="Optional description..."
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
+              onChange={setDescription}
+              placeholder="Optional description..."
             />
           </div>
 

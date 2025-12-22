@@ -3,7 +3,7 @@ import { X, Link as LinkIcon } from 'lucide-react';
 import { Link } from '@/types/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -106,15 +106,13 @@ export function LinkEditDialog({ link, open, onOpenChange }: LinkEditDialogProps
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="edit-link-description" className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-foreground">
               Description
             </label>
-            <Textarea
-              id="edit-link-description"
-              placeholder="Optional description..."
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
+              onChange={setDescription}
+              placeholder="Optional description..."
             />
           </div>
 

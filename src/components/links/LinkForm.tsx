@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Link as LinkIcon, Loader2, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
@@ -203,15 +203,13 @@ export function LinkForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="link-description" className="text-sm font-medium text-foreground">
+        <label className="text-sm font-medium text-foreground">
           Description
         </label>
-        <Textarea
-          id="link-description"
-          placeholder="Optional description..."
+        <RichTextEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={2}
+          onChange={setDescription}
+          placeholder="Optional description..."
         />
       </div>
 
