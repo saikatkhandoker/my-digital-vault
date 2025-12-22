@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { ExternalLink, Trash2, Pencil, Info } from 'lucide-react';
 import { Link } from '@/types/link';
 import { Button } from '@/components/ui/button';
@@ -181,7 +182,7 @@ export function LinkCard({ link }: LinkCardProps) {
             <DrawerTitle>{link.title}</DrawerTitle>
             <div 
               className="prose prose-sm dark:prose-invert max-w-none mt-2"
-              dangerouslySetInnerHTML={{ __html: link.description || '' }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(link.description || '') }}
             />
           </DrawerHeader>
           <div className="p-4 pt-0">

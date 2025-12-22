@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { ExternalLink, Trash2, User, Youtube, Facebook, Instagram, Pencil, Info } from 'lucide-react';
 import { Video } from '@/types/video';
 import { Button } from '@/components/ui/button';
@@ -240,7 +241,7 @@ export function VideoCard({ video }: VideoCardProps) {
             <DrawerTitle>{video.title}</DrawerTitle>
             <div 
               className="prose prose-sm dark:prose-invert max-w-none mt-2"
-              dangerouslySetInnerHTML={{ __html: video.description || '' }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(video.description || '') }}
             />
           </DrawerHeader>
           <div className="p-4 pt-0">
