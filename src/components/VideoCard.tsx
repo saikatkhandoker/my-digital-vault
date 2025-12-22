@@ -238,9 +238,10 @@ export function VideoCard({ video }: VideoCardProps) {
         <DrawerContent>
           <DrawerHeader className="text-left">
             <DrawerTitle>{video.title}</DrawerTitle>
-            <DrawerDescription className="text-base mt-2">
-              {video.description}
-            </DrawerDescription>
+            <div 
+              className="prose prose-sm dark:prose-invert max-w-none mt-2"
+              dangerouslySetInnerHTML={{ __html: video.description || '' }}
+            />
           </DrawerHeader>
           <div className="p-4 pt-0">
             <Button 

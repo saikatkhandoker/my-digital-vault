@@ -179,9 +179,10 @@ export function LinkCard({ link }: LinkCardProps) {
         <DrawerContent>
           <DrawerHeader className="text-left">
             <DrawerTitle>{link.title}</DrawerTitle>
-            <DrawerDescription className="text-base mt-2">
-              {link.description}
-            </DrawerDescription>
+            <div 
+              className="prose prose-sm dark:prose-invert max-w-none mt-2"
+              dangerouslySetInnerHTML={{ __html: link.description || '' }}
+            />
           </DrawerHeader>
           <div className="p-4 pt-0">
             <Button 
