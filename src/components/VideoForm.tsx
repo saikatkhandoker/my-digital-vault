@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Link as LinkIcon, Loader2, Youtube, Facebook, Instagram, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useVideos } from '@/context/VideoContext';
@@ -211,15 +211,13 @@ export function VideoForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium text-foreground">
+        <label className="text-sm font-medium text-foreground">
           Description
         </label>
-        <Textarea
-          id="description"
-          placeholder="Optional description..."
+        <RichTextEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={2}
+          onChange={setDescription}
+          placeholder="Optional description..."
         />
       </div>
 
