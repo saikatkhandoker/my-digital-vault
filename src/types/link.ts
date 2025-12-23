@@ -2,6 +2,7 @@ export interface LinkCategory {
   id: string;
   name: string;
   color: string;
+  parentId: string | null;
 }
 
 export interface Link {
@@ -29,4 +30,6 @@ export interface LinkContextType {
   addLinkCategory: (category: Omit<LinkCategory, 'id'>) => void;
   updateLinkCategory: (id: string, category: Omit<LinkCategory, 'id'>) => void;
   deleteLinkCategory: (id: string) => void;
+  getParentCategories: () => LinkCategory[];
+  getSubcategories: (parentId: string) => LinkCategory[];
 }

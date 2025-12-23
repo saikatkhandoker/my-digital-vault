@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,10 +21,14 @@ const PRESET_COLORS = [
 export function LinkCategoryManager() {
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [parentId, setParentId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const { linkCategories, addLinkCategory, updateLinkCategory, deleteLinkCategory } = useLinks();
+  const { linkCategories, addLinkCategory, updateLinkCategory, deleteLinkCategory, getParentCategories } = useLinks();
   const { toast } = useToast();
+
+  const parentCategories = getParentCategories();
+  const subcategories = (parentCatId: string) => linkCategories.filter(c => c.parentId === parentCatId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,22 +39,21 @@ export function LinkCategoryManager() {
     }
 
     if (editingId) {
-      updateLinkCategory(editingId, { name: name.trim(), color });
+      updateLinkCategory(editingId, { name: name.trim(), color, parentId });
       toast({ title: 'Category updated' });
     } else {
-      addLinkCategory({ name: name.trim(), color });
+      addLinkCategory({ name: name.trim(), color, parentId });
       toast({ title: 'Category created' });
     }
 
-    setName('');
-    setColor(PRESET_COLORS[0]);
-    setEditingId(null);
+    resetForm();
   };
 
-  const handleEdit = (category: { id: string; name: string; color: string }) => {
+  const handleEdit = (category: { id: string; name: string; color: string; parentId: string | null }) => {
     setEditingId(category.id);
     setName(category.name);
     setColor(category.color);
+    setParentId(category.parentId);
   };
 
   const handleDelete = (id: string) => {
@@ -57,10 +61,21 @@ export function LinkCategoryManager() {
     toast({ title: 'Category deleted' });
   };
 
-  const handleCancel = () => {
+  const resetForm = () => {
     setEditingId(null);
     setName('');
     setColor(PRESET_COLORS[0]);
+    setParentId(null);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+  };
+
+  // Check if category can be a parent (not a subcategory itself)
+  const canBeParent = (categoryId: string) => {
+    const category = linkCategories.find(c => c.id === categoryId);
+    return category && category.parentId === null;
   };
 
   return (
@@ -71,7 +86,7 @@ export function LinkCategoryManager() {
           Manage Categories
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Link Categories</DialogTitle>
         </DialogHeader>
@@ -84,6 +99,35 @@ export function LinkCategoryManager() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter category name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Parent Category (optional)</label>
+            <Select 
+              value={parentId || 'none'} 
+              onValueChange={(value) => setParentId(value === 'none' ? null : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select parent category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None (Top-level category)</SelectItem>
+                {parentCategories
+                  .filter(c => c.id !== editingId) // Don't allow category to be its own parent
+                  .map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: `hsl(${category.color})` }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -129,36 +173,71 @@ export function LinkCategoryManager() {
             <p className="text-sm text-muted-foreground">No categories yet</p>
           ) : (
             <div className="space-y-2">
-              {linkCategories.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between rounded-md border border-border p-2"
-                >
-                  <div className="flex items-center gap-2">
+              {parentCategories.map((category) => (
+                <div key={category.id}>
+                  {/* Parent Category */}
+                  <div className="flex items-center justify-between rounded-md border border-border p-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-4 w-4 rounded-full"
+                        style={{ backgroundColor: `hsl(${category.color})` }}
+                      />
+                      <span className="text-sm font-medium">{category.name}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(category)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => handleDelete(category.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Subcategories */}
+                  {subcategories(category.id).map((subcat) => (
                     <div
-                      className="h-4 w-4 rounded-full"
-                      style={{ backgroundColor: `hsl(${category.color})` }}
-                    />
-                    <span className="text-sm font-medium">{category.name}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(category)}
+                      key={subcat.id}
+                      className="flex items-center justify-between rounded-md border border-border p-2 ml-6 mt-1 bg-muted/30"
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => handleDelete(category.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: `hsl(${subcat.color})` }}
+                        />
+                        <span className="text-sm">{subcat.name}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleEdit(subcat)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDelete(subcat.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
