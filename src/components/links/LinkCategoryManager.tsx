@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLinks } from '@/context/LinkContext';
 import { useToast } from '@/hooks/use-toast';
+import { LinkCategory } from '@/types/link';
 
 const PRESET_COLORS = [
   '340 82% 52%',  // Pink
@@ -20,10 +22,14 @@ const PRESET_COLORS = [
 export function LinkCategoryManager() {
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [parentId, setParentId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const { linkCategories, addLinkCategory, updateLinkCategory, deleteLinkCategory } = useLinks();
   const { toast } = useToast();
+
+  // Get parent categories (categories without parents)
+  const parentCategories = linkCategories.filter(c => !c.parentId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,23 +39,28 @@ export function LinkCategoryManager() {
       return;
     }
 
+    // Prevent circular reference
+    if (editingId && parentId === editingId) {
+      toast({ title: 'A category cannot be its own parent', variant: 'destructive' });
+      return;
+    }
+
     if (editingId) {
-      updateLinkCategory(editingId, { name: name.trim(), color });
+      updateLinkCategory(editingId, { name: name.trim(), color, parentId });
       toast({ title: 'Category updated' });
     } else {
-      addLinkCategory({ name: name.trim(), color });
+      addLinkCategory({ name: name.trim(), color, parentId });
       toast({ title: 'Category created' });
     }
 
-    setName('');
-    setColor(PRESET_COLORS[0]);
-    setEditingId(null);
+    resetForm();
   };
 
-  const handleEdit = (category: { id: string; name: string; color: string }) => {
+  const handleEdit = (category: LinkCategory) => {
     setEditingId(category.id);
     setName(category.name);
     setColor(category.color);
+    setParentId(category.parentId);
   };
 
   const handleDelete = (id: string) => {
@@ -57,10 +68,70 @@ export function LinkCategoryManager() {
     toast({ title: 'Category deleted' });
   };
 
-  const handleCancel = () => {
+  const resetForm = () => {
     setEditingId(null);
     setName('');
     setColor(PRESET_COLORS[0]);
+    setParentId(null);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+  };
+
+  // Get available parent options (exclude self and own children when editing)
+  const getAvailableParents = () => {
+    if (!editingId) return parentCategories;
+    
+    // Exclude self and any category that has editingId as parent
+    return linkCategories.filter(c => 
+      c.id !== editingId && 
+      c.parentId !== editingId && 
+      !c.parentId // Only show top-level categories as parent options
+    );
+  };
+
+  const renderCategoryItem = (category: LinkCategory, isChild = false) => {
+    const children = linkCategories.filter(c => c.parentId === category.id);
+    
+    return (
+      <div key={category.id}>
+        <div
+          className={`flex items-center justify-between rounded-md border border-border p-2 ${isChild ? 'ml-6 border-l-2' : ''}`}
+          style={isChild ? { borderLeftColor: `hsl(${category.color})` } : undefined}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="h-4 w-4 rounded-full"
+              style={{ backgroundColor: `hsl(${category.color})` }}
+            />
+            <span className="text-sm font-medium">
+              {isChild && <ChevronRight className="inline h-3 w-3 mr-1 text-muted-foreground" />}
+              {category.name}
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleEdit(category)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive"
+              onClick={() => handleDelete(category.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        {children.map(child => renderCategoryItem(child, true))}
+      </div>
+    );
   };
 
   return (
@@ -71,7 +142,7 @@ export function LinkCategoryManager() {
           Manage Categories
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Link Categories</DialogTitle>
         </DialogHeader>
@@ -84,6 +155,32 @@ export function LinkCategoryManager() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter category name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Parent Category (Optional)</label>
+            <Select 
+              value={parentId || 'none'} 
+              onValueChange={(value) => setParentId(value === 'none' ? null : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select parent category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None (Top Level)</SelectItem>
+                {getAvailableParents().map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: `hsl(${cat.color})` }}
+                      />
+                      {cat.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -129,38 +226,7 @@ export function LinkCategoryManager() {
             <p className="text-sm text-muted-foreground">No categories yet</p>
           ) : (
             <div className="space-y-2">
-              {linkCategories.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between rounded-md border border-border p-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-4 w-4 rounded-full"
-                      style={{ backgroundColor: `hsl(${category.color})` }}
-                    />
-                    <span className="text-sm font-medium">{category.name}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(category)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => handleDelete(category.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              {parentCategories.map((category) => renderCategoryItem(category))}
             </div>
           )}
         </div>
