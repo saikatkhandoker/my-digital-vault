@@ -2,7 +2,6 @@ export interface LinkCategory {
   id: string;
   name: string;
   color: string;
-  parentId: string | null;
 }
 
 export interface Link {
@@ -28,6 +27,6 @@ export interface LinkContextType {
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (categoryId: string | null) => void;
   addLinkCategory: (category: Omit<LinkCategory, 'id'>) => void;
-  updateLinkCategory: (id: string, category: Partial<Omit<LinkCategory, 'id'>>) => void;
+  updateLinkCategory: (id: string, category: Omit<LinkCategory, 'id'>) => void;
   deleteLinkCategory: (id: string) => void;
 }

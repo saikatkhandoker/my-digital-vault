@@ -20,7 +20,6 @@ interface NeonLinkCategory {
   id: string;
   name: string;
   color: string;
-  parent_id: string | null;
 }
 
 function mapNeonLinkToLink(neonLink: NeonLink): Link {
@@ -41,7 +40,6 @@ function mapNeonCategoryToCategory(neonCategory: NeonLinkCategory): LinkCategory
     id: neonCategory.id,
     name: neonCategory.name,
     color: neonCategory.color,
-    parentId: neonCategory.parent_id,
   };
 }
 
@@ -175,11 +173,7 @@ export function LinkProvider({ children }: { children: ReactNode }) {
       const response = await fetch(apiConfig.getVideosUrl('addLinkCategory'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: category.name, 
-          color: category.color,
-          parentId: category.parentId || null 
-        }),
+        body: JSON.stringify({ name: category.name, color: category.color }),
       });
       
       const data = await response.json();
@@ -196,20 +190,12 @@ export function LinkProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateLinkCategory = async (id: string, category: Partial<Omit<LinkCategory, 'id'>>) => {
+  const updateLinkCategory = async (id: string, category: Omit<LinkCategory, 'id'>) => {
     try {
-      const existingCategory = linkCategories.find(c => c.id === id);
-      if (!existingCategory) return;
-
       const response = await fetch(apiConfig.getVideosUrl('updateLinkCategory'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id, 
-          name: category.name ?? existingCategory.name, 
-          color: category.color ?? existingCategory.color,
-          parentId: category.parentId !== undefined ? category.parentId : existingCategory.parentId
-        }),
+        body: JSON.stringify({ id, name: category.name, color: category.color }),
       });
       
       const data = await response.json();
@@ -238,8 +224,6 @@ export function LinkProvider({ children }: { children: ReactNode }) {
       
       if (data.success) {
         setLinkCategories(prev => prev.filter(c => c.id !== id));
-        // Also update child categories to have no parent
-        setLinkCategories(prev => prev.map(c => c.parentId === id ? { ...c, parentId: null } : c));
         setLinks(prev => prev.map(l => l.categoryId === id ? { ...l, categoryId: null } : l));
         toast.success('Category deleted');
       } else if (data.error) {

@@ -19,13 +19,6 @@ interface NeonVideo {
   created_at: string;
 }
 
-interface NeonCategory {
-  id: string;
-  name: string;
-  color: string;
-  parent_id: string | null;
-}
-
 function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
   return {
     id: neonVideo.id,
@@ -38,15 +31,6 @@ function mapNeonVideoToVideo(neonVideo: NeonVideo): Video {
     categoryId: neonVideo.category_id,
     tags: neonVideo.tags || [],
     createdAt: neonVideo.created_at,
-  };
-}
-
-function mapNeonCategoryToCategory(neonCategory: NeonCategory): Category {
-  return {
-    id: neonCategory.id,
-    name: neonCategory.name,
-    color: neonCategory.color,
-    parentId: neonCategory.parent_id,
   };
 }
 
@@ -83,7 +67,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       const categoriesData = await categoriesResult.json();
       
       if (categoriesData.categories) {
-        setCategories(categoriesData.categories.map(mapNeonCategoryToCategory));
+        setCategories(categoriesData.categories);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -191,20 +175,20 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addCategory = async (name: string, color: string, parentId?: string | null) => {
+  const addCategory = async (name: string, color: string) => {
     try {
       const response = await fetch(apiConfig.getVideosUrl('addCategory'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, color, parentId: parentId || null }),
+        body: JSON.stringify({ name, color }),
       });
       
       const data = await response.json();
       
       if (data.category) {
-        setCategories(prev => [...prev, mapNeonCategoryToCategory(data.category)]);
+        setCategories(prev => [...prev, data.category]);
         toast.success('Category added');
       } else if (data.error) {
         toast.error(data.error);
@@ -215,20 +199,20 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateCategory = async (id: string, name: string, color: string, parentId?: string | null) => {
+  const updateCategory = async (id: string, name: string, color: string) => {
     try {
       const response = await fetch(apiConfig.getVideosUrl('updateCategory'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, name, color, parentId: parentId !== undefined ? parentId : null }),
+        body: JSON.stringify({ id, name, color }),
       });
       
       const data = await response.json();
       
       if (data.category) {
-        setCategories(prev => prev.map(c => c.id === id ? mapNeonCategoryToCategory(data.category) : c));
+        setCategories(prev => prev.map(c => c.id === id ? data.category : c));
         toast.success('Category updated');
       } else if (data.error) {
         toast.error(data.error);
@@ -253,8 +237,6 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       
       if (data.success) {
         setCategories(prev => prev.filter(c => c.id !== id));
-        // Also update child categories to have no parent
-        setCategories(prev => prev.map(c => c.parentId === id ? { ...c, parentId: null } : c));
         setVideos(prev => prev.map(v => v.categoryId === id ? { ...v, categoryId: null } : v));
         if (selectedCategory === id) {
           setSelectedCategory(null);
